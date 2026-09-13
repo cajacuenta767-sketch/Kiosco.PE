@@ -87,3 +87,63 @@ export function textoPedido(lineas: LineaPedido[], nombreBodega: string): string
   const filas = lineas.map((l) => `• ${l.sugerido} ${l.producto.unidad} ${l.producto.nombre}`).join('\n')
   return `Pedido de ${nombreBodega || 'mi bodega'}:\n${filas}\n\nGracias.`
 }
+
+/** Texto de comprobante simple para enviar por WhatsApp o imprimir. */
+export function textoComprobante(v: Venta, nombreBodega: string, etiquetaMetodo: string): string {
+  const filas = v.items.map((i) => `${i.cantidad} × ${i.nombre}  S/ ${(i.precio * i.cantidad).toFixed(2)}`).join('\n')
+  const fecha = new Date(v.fecha).toLocaleString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  const vuelto = v.vuelto != null && v.vuelto > 0 ? `\nPagó con S/ ${v.pagoCon!.toFixed(2)} · Vuelto S/ ${v.vuelto.toFixed(2)}` : ''
+  return `${nombreBodega || 'Kiosco.PE'}\n${fecha}\n\n${filas}\n\nTOTAL S/ ${v.total.toFixed(2)} (${etiquetaMetodo})${vuelto}\n\n¡Gracias por su compra!`
+}
+
+export interface ResumenMes {
+  mes: string // YYYY-MM
+  vendido: number
+  gananciaBruta: number
+  gastos: number
+  gananciaNeta: number
+  numVentas: number
+  diasConVenta: number
+  promedioDiario: number
+  mejorDia: { dia: string; total: number } | null
+  fiado: number
+  cobradoFiado: number
+  topProductos: { nombre: string; cantidad: number; total: number }[]
+}
+
+export function resumirMes(mes: string, ventas: Venta[], gastos: { monto: number; dia: string }[], movsFiado: { tipo: 'fiado' | 'abono'; monto: number; fecha: string }[]): ResumenMes {
+  const vm = ventas.filter((v) => v.dia.startsWith(mes))
+  const gm = gastos.filter((g) => g.dia.startsWith(mes))
+  const fm = movsFiado.filter((m) => m.fecha.startsWith(mes))
+  const porDia = new Map<string, number>()
+  const top = new Map<string, { nombre: string; cantidad: number; total: number }>()
+  let vendido = 0
+  let gananciaBruta = 0
+  for (const v of vm) {
+    vendido += v.total
+    gananciaBruta += v.total - v.costoTotal
+    porDia.set(v.dia, (porDia.get(v.dia) ?? 0) + v.total)
+    for (const i of v.items) {
+      const t = top.get(i.nombre) ?? { nombre: i.nombre, cantidad: 0, total: 0 }
+      t.cantidad += i.cantidad
+      t.total += i.precio * i.cantidad
+      top.set(i.nombre, t)
+    }
+  }
+  const totalGastos = gm.reduce((s, g) => s + g.monto, 0)
+  const mejor = [...porDia.entries()].sort((a, b) => b[1] - a[1])[0]
+  return {
+    mes,
+    vendido: redondear(vendido),
+    gananciaBruta: redondear(gananciaBruta),
+    gastos: redondear(totalGastos),
+    gananciaNeta: redondear(gananciaBruta - totalGastos),
+    numVentas: vm.length,
+    diasConVenta: porDia.size,
+    promedioDiario: porDia.size ? redondear(vendido / porDia.size) : 0,
+    mejorDia: mejor ? { dia: mejor[0], total: redondear(mejor[1]) } : null,
+    fiado: redondear(fm.filter((m) => m.tipo === 'fiado').reduce((s, m) => s + m.monto, 0)),
+    cobradoFiado: redondear(fm.filter((m) => m.tipo === 'abono').reduce((s, m) => s + m.monto, 0)),
+    topProductos: [...top.values()].sort((a, b) => b.total - a.total).slice(0, 5),
+  }
+}

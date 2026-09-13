@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, type CategoriaGasto, type Gasto, type Venta } from '../db/db'
 import { CATEGORIAS_GASTO, METODOS, anularVenta, cerrarCaja, eliminarGasto, registrarGasto, resumirVentas } from '../lib/acciones'
-import { aDia, diaLabel, fechaLarga, hora, hoyISO, redondear, soles } from '@kiosco/shared'
+import { aDia, diaLabel, fechaCorta, fechaLarga, hora, hoyISO, mesLabel, redondear, resumirMes, soles, textoComprobante } from '@kiosco/shared'
 import { Campo, Modal, Vacio } from '../components/ui'
 
 export function Caja({ avisar }: { avisar: (m: string) => void }) {
@@ -25,6 +25,13 @@ export function Caja({ avisar }: { avisar: (m: string) => void }) {
   const gastosSemana = useLiveQuery(() => db.gastos.where('dia').between(ultimos7[0], ultimos7[6], true, true).toArray(), [ultimos7]) ?? []
   const [cerrando, setCerrando] = useState(false)
   const [detalle, setDetalle] = useState<Venta | null>(null)
+  const [verMes, setVerMes] = useState(false)
+  const mes = dia.slice(0, 7)
+  const ventasMes = useLiveQuery(() => db.ventas.where('dia').between(`${mes}-01`, `${mes}-31`, true, true).toArray(), [mes]) ?? []
+  const gastosMes = useLiveQuery(() => db.gastos.where('dia').between(`${mes}-01`, `${mes}-31`, true, true).toArray(), [mes]) ?? []
+  const fiadosMes = useLiveQuery(() => db.movimientosFiado.where('fecha').between(`${mes}-01`, `${mes}-31T23:59:59.999Z`, true, true).toArray(), [mes]) ?? []
+  const nombreBodega = useLiveQuery(() => db.config.get('nombreBodega'), [])?.value ?? ''
+  const rm = resumirMes(mes, ventasMes, gastosMes, fiadosMes)
 
   const r = resumirVentas(ventasDia, dia)
   const porDia = ultimos7.map((d) => ({ dia: d, total: redondear(semana.filter((v) => v.dia === d).reduce((s, v) => s + v.total, 0)) }))
@@ -109,6 +116,11 @@ export function Caja({ avisar }: { avisar: (m: string) => void }) {
         ))}
       </div>
 
+      <button className="banner-accion" onClick={() => setVerMes(true)}>
+        <span>📅 <strong>{mesLabel(mes)}</strong> · vendido {soles(rm.vendido)} · ganancia neta {soles(rm.gananciaNeta)}</span>
+        <span>›</span>
+      </button>
+
       {r.topProductos.length > 0 && (
         <>
           <h3 className="subtitulo">Lo más vendido</h3>
@@ -157,7 +169,33 @@ export function Caja({ avisar }: { avisar: (m: string) => void }) {
           </ul>
           <div className="fila-total"><span>Total ({METODOS.find((m) => m.id === detalle.metodoPago)?.label})</span><strong>{soles(detalle.total)}</strong></div>
           {detalle.vuelto != null && detalle.vuelto > 0 && <p className="nota">Pagó con {soles(detalle.pagoCon!)} · vuelto {soles(detalle.vuelto)}</p>}
+          <a className="btn-whatsapp" href={`https://wa.me/?text=${encodeURIComponent(textoComprobante(detalle, nombreBodega, METODOS.find((m) => m.id === detalle.metodoPago)?.label ?? ''))}`} target="_blank" rel="noreferrer">💬 Enviar comprobante por WhatsApp</a>
           <button className="btn-peligro ancho" onClick={() => anular(detalle)}>Anular venta</button>
+        </Modal>
+      )}
+      {verMes && (
+        <Modal titulo={`Resumen de ${mesLabel(mes)}`} onCerrar={() => setVerMes(false)}>
+          <div className="kpis">
+            <div className="kpi"><span className="kpi-label">Vendido</span><strong>{soles(rm.vendido)}</strong></div>
+            <div className="kpi"><span className="kpi-label">Ganancia neta</span><strong className={rm.gananciaNeta >= 0 ? 'texto-ok' : 'texto-peligro'}>{soles(rm.gananciaNeta)}</strong></div>
+            <div className="kpi"><span className="kpi-label">Gastos</span><strong>{soles(rm.gastos)}</strong></div>
+            <div className="kpi"><span className="kpi-label">Ventas</span><strong>{rm.numVentas}</strong></div>
+            <div className="kpi"><span className="kpi-label">Promedio por día</span><strong>{soles(rm.promedioDiario)}</strong></div>
+            <div className="kpi"><span className="kpi-label">Mejor día</span><strong>{rm.mejorDia ? `${fechaCorta(rm.mejorDia.dia)} · ${soles(rm.mejorDia.total)}` : '—'}</strong></div>
+            <div className="kpi"><span className="kpi-label">Fiado en el mes</span><strong>{soles(rm.fiado)}</strong></div>
+            <div className="kpi"><span className="kpi-label">Fiado cobrado</span><strong className="texto-ok">{soles(rm.cobradoFiado)}</strong></div>
+          </div>
+          <p className="nota">Ganancia bruta {soles(rm.gananciaBruta)} menos gastos {soles(rm.gastos)}. {rm.diasConVenta} {rm.diasConVenta === 1 ? 'día' : 'días'} con ventas.</p>
+          {rm.topProductos.length > 0 && (
+            <>
+              <h3 className="subtitulo">Lo más vendido del mes</h3>
+              <ul className="lista compacta">
+                {rm.topProductos.map((t, i) => (
+                  <li key={t.nombre} className="fila-simple"><span>{i + 1}. {t.nombre} <em className="item-sub">× {t.cantidad}</em></span><strong>{soles(t.total)}</strong></li>
+                ))}
+              </ul>
+            </>
+          )}
         </Modal>
       )}
     </div>

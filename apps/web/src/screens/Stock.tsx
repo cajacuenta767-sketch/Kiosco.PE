@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, type Producto, type Unidad } from '../db/db'
 import { CATEGORIAS, desactivarProducto, diasAtras, guardarProducto, ingresarMercaderia, pedidoSugerido, textoPedido } from '../lib/acciones'
-import { hoyISO, redondear, soles } from '@kiosco/shared'
+import { fechaCorta, hora, hoyISO, redondear, soles } from '@kiosco/shared'
 import { Campo, Modal, Vacio } from '../components/ui'
 import { Escaner } from '../components/Escaner'
 
@@ -234,6 +234,7 @@ function FormProducto({ producto, onCerrar, onGuardado }: { producto: Producto |
       </Campo>
       {escaneando && <Escaner onCodigo={(c) => { set('codigoBarras', c); setEscaneando(false) }} onCerrar={() => setEscaneando(false)} />}
       {error && <p className="texto-peligro">{error}</p>}
+      {producto && <Kardex productoId={producto.id} unidad={producto.unidad} />}
       <div className="acciones">
         {producto && <button className="btn-peligro" onClick={desactivar}>Quitar</button>}
         <button className="btn-primario" onClick={guardar}>Guardar</button>
@@ -263,5 +264,26 @@ function Ingreso({ producto, onCerrar, onHecho }: { producto: Producto; onCerrar
       {n > 0 && <p className="nota">Quedará con <strong>{redondear(producto.stock + n)} {producto.unidad}</strong>. Inversión: {soles(n * (Number(costo) || 0))}.</p>}
       <button className="btn-primario grande ancho" disabled={n <= 0} onClick={guardar}>Registrar ingreso</button>
     </Modal>
+  )
+}
+
+const TIPO_MOV: Record<string, string> = { venta: 'Venta', ingreso: 'Ingreso', ajuste: 'Ajuste', merma: 'Merma' }
+
+/** Historial de movimientos de un producto: responde "¿por qué tengo 3 si ayer tenía 10?". */
+function Kardex({ productoId, unidad }: { productoId: string; unidad: Unidad }) {
+  const movs = useLiveQuery(() => db.movimientosStock.where('productoId').equals(productoId).reverse().sortBy('fecha'), [productoId]) ?? []
+  if (movs.length === 0) return null
+  return (
+    <>
+      <h3 className="subtitulo">Últimos movimientos</h3>
+      <ul className="historial">
+        {movs.slice(0, 8).map((m) => (
+          <li key={m.id}>
+            <div><strong>{TIPO_MOV[m.tipo] ?? m.tipo}</strong><span className="item-sub">{fechaCorta(m.fecha)} {hora(m.fecha)}{m.nota ? ` · ${m.nota}` : ''}</span></div>
+            <span className={m.cantidad < 0 ? 'texto-peligro' : 'texto-ok'}>{m.cantidad > 0 ? '+' : ''}{m.cantidad} {unidad}</span>
+          </li>
+        ))}
+      </ul>
+    </>
   )
 }

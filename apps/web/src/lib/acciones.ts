@@ -133,7 +133,7 @@ export async function desactivarProducto(p: Producto) {
   })
 }
 
-export async function guardarCliente(datos: { nombre: string; telefono?: string; nota?: string }, existente?: Cliente): Promise<Cliente> {
+export async function guardarCliente(datos: { nombre: string; telefono?: string; nota?: string; pagaEl?: string }, existente?: Cliente): Promise<Cliente> {
   return db.transaction('rw', [db.clientes, db.cola], async () => {
     const fecha = ahoraISO()
     if (existente) return poner('clientes', { ...existente, ...datos, actualizadoEn: fecha })

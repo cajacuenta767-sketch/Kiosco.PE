@@ -3,14 +3,23 @@
   "private": true,
   "version": "0.2.0",
   "description": "Kiosco.PE — ventas, stock y fiados para bodegas del Perú. Monorepo: PWA + API + lógica compartida + Android (TWA).",
-  "workspaces": ["packages/*", "apps/*"],
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "scripts": {
     "dev": "npm run dev -w @kiosco/web",
     "dev:api": "npm run dev -w @kiosco/api",
     "build": "npm run build -w @kiosco/web",
     "build:api": "npm run build -w @kiosco/api",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present"
+    "test": "npm run test --workspaces --if-present",
+    "e2e": "npm run build && node scripts/e2e.mjs"
   },
-  "engines": { "node": ">=20" }
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.50.0"
+  }
 }

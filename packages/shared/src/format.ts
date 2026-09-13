@@ -41,3 +41,8 @@ export function diaLabel(dia: string): string {
   const [y, m, d] = dia.split('-').map(Number)
   return new Date(y, m - 1, d).toLocaleDateString('es-PE', { weekday: 'short' }).replace('.', '')
 }
+
+export function mesLabel(mes: string): string {
+  const [y, m] = mes.split('-').map(Number)
+  return new Date(y, m - 1, 1).toLocaleDateString('es-PE', { month: 'long', year: 'numeric' })
+}

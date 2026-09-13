@@ -42,9 +42,8 @@ Probado con dos celulares vendiendo, fiando y anulando sobre la misma bodega.
 - **Alertas útiles:** "Mañana es lunes y te quedan 4 Pilsen" según la rotación de la semana pasada.
 - **Sugerencia de pedido:** lista de lo que hay que reponer, calculada con ventas de los últimos 14 días, lista para enviar
   al proveedor por WhatsApp.
-- **Fiados con fecha de pago acordada** y recordatorio automático el día que toca.
-- **Gastos:** anotar lo que sale de caja (pasaje, luz, compra a proveedor) para que el cierre cuadre de verdad
-  y la ganancia neta sea real.
+- ~~Fiados con fecha de pago acordada~~ ✅ (v0.4). Falta el recordatorio automático el día que toca (notificación push, Fase 3).
+- ~~Gastos~~ ✅ (v0.2).
 
 ## Fase 3 · Formalización y crecimiento (3 a 6 meses)
 

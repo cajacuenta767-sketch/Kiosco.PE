@@ -79,6 +79,7 @@ Kiosco.PE/
 │   │   ├── index.html
 │   │   ├── vite.config.ts       Manifest PWA, service worker, íconos.
 │   │   ├── public/              Íconos y .well-known/assetlinks.json (enlace con la app Android).
+│   │   ├── e2e/                 Pruebas de navegador (Playwright): flujo básico, Fase 1, dos celulares.
 │   │   └── src/
 │   │       ├── db/db.ts         Esquema Dexie (IndexedDB): tablas con id global y cola de cambios.
 │   │       ├── db/repo.ts       poner/borrar: escribe y encola para la nube en la misma transacción.
@@ -87,7 +88,7 @@ Kiosco.PE/
 │   │       ├── sync/motor.ts    Motor de sincronización: activar nube, vincular, subir, bajar, aplicar.
 │   │       ├── lib/acciones.ts  Transacciones: registrar venta, ingresar stock, abonar, gastos, respaldo.
 │   │       ├── components/      Modal, Campo, Toast, Escáner de códigos con cámara.
-│   │       ├── screens/         Vender · Stock · Fiados · Caja · Ajustes · Nube.
+│   │       ├── screens/         Bienvenida · Vender · Stock · Fiados · Caja · Ajustes · Nube.
 │   │       ├── App.tsx          Pestañas, cabecera, tema.
 │   │       └── styles.css       Sistema de diseño (variables, modo oscuro, móvil primero).
 │   │
@@ -109,6 +110,7 @@ Kiosco.PE/
 │   ├── twa-manifest.json        Configuración Bubblewrap: paquete pe.kiosco.app, colores, ícono, versión.
 │   └── README.md                Paso a paso hasta publicar.
 │
+├── scripts/e2e.mjs              Arranca la API con PGlite en memoria sirviendo la PWA y corre apps/web/e2e.
 ├── Dockerfile · fly.toml        Un contenedor sirve PWA + API. Datos en volumen (PGlite) o Postgres externo.
 └── docs/                        Oportunidad, producto, arquitectura, hoja de ruta, este documento, despliegue.
 ```
@@ -122,7 +124,8 @@ npm install                 # instala los tres workspaces
 npm run dev                 # PWA en http://localhost:5173
 npm run dev:api             # API en http://localhost:3000 (sin DATABASE_URL: solo /salud)
 npm run typecheck           # tipos en shared, web y api
-npm test                    # pruebas de la lógica de negocio
+npm test                    # pruebas de la lógica de negocio y de la API
+npm run e2e                 # compila y corre las pruebas de navegador (necesita Chromium)
 npm run build               # apps/web/dist listo para publicar
 npm run build:api           # apps/api/dist listo para desplegar
 ```

@@ -38,3 +38,29 @@ test('pedidoSugerido repone lo que se acaba según rotación', () => {
   assert.equal(lineas[1].sugerido, 9) // objetivo 2×5 − 1
   assert.equal(lineas[1].costo, 18)
 })
+
+test('resumirMes agrega ventas, gastos y fiados del mes', async () => {
+  const { resumirMes, textoComprobante } = await import('./calculos.ts')
+  const ventas = [
+    venta({ dia: '2026-09-01', total: 10, costoTotal: 7, items: [{ productoId: 'p1', nombre: 'A', cantidad: 2, precio: 5, costo: 3.5 }] }),
+    venta({ dia: '2026-09-02', total: 30, costoTotal: 20, items: [{ productoId: 'p2', nombre: 'B', cantidad: 1, precio: 30, costo: 20 }] }),
+    venta({ dia: '2026-08-31', total: 99, costoTotal: 1, items: [] }),
+  ]
+  const r = resumirMes('2026-09', ventas, [{ monto: 5, dia: '2026-09-02' }, { monto: 50, dia: '2026-08-15' }], [{ tipo: 'fiado', monto: 8, fecha: '2026-09-03T10:00:00Z' }, { tipo: 'abono', monto: 3, fecha: '2026-09-04T10:00:00Z' }])
+  assert.equal(r.vendido, 40)
+  assert.equal(r.gananciaBruta, 13)
+  assert.equal(r.gastos, 5)
+  assert.equal(r.gananciaNeta, 8)
+  assert.equal(r.numVentas, 2)
+  assert.equal(r.diasConVenta, 2)
+  assert.equal(r.promedioDiario, 20)
+  assert.deepEqual(r.mejorDia, { dia: '2026-09-02', total: 30 })
+  assert.equal(r.fiado, 8)
+  assert.equal(r.cobradoFiado, 3)
+  assert.equal(r.topProductos[0].nombre, 'B')
+  const texto = textoComprobante(venta({ fecha: '2026-09-13T15:00:00Z', total: 8, items: [{ productoId: 'p1', nombre: 'Inca Kola', cantidad: 2, precio: 3, costo: 2.3 }], pagoCon: 10, vuelto: 2 }), 'Bodega X', 'Efectivo')
+  assert.match(texto, /Bodega X/)
+  assert.match(texto, /2 × Inca Kola  S\/ 6\.00/)
+  assert.match(texto, /TOTAL S\/ 8\.00 \(Efectivo\)/)
+  assert.match(texto, /Vuelto S\/ 2\.00/)
+})

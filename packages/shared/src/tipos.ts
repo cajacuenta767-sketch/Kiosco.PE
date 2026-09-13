@@ -47,6 +47,7 @@ export interface Cliente extends Registro {
   nombre: string
   telefono?: string
   nota?: string
+  pagaEl?: string // YYYY-MM-DD, fecha de pago acordada
   creadoEn: string
 }
 

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, type Cliente, type MovimientoFiado } from '../db/db'
 import { deudaDe, guardarCliente, registrarAbono } from '../lib/acciones'
-import { fechaCorta, hora, soles } from '@kiosco/shared'
+import { fechaCorta, hora, hoyISO, soles } from '@kiosco/shared'
 import { Campo, Modal, Vacio } from '../components/ui'
 
 export function Fiados({ avisar }: { avisar: (m: string) => void }) {
@@ -65,6 +65,7 @@ export function Fiados({ avisar }: { avisar: (m: string) => void }) {
                   <strong>{cliente.nombre}</strong>
                   <span className="item-sub">
                     {ultimo ? `${ultimo.tipo === 'fiado' ? 'Fió' : 'Abonó'} ${soles(ultimo.monto)} · ${fechaCorta(ultimo.fecha)}` : 'Sin movimientos'}
+                    {deuda > 0 && cliente.pagaEl && (cliente.pagaEl < hoyISO() ? <b className="texto-peligro"> · venció {fechaCorta(cliente.pagaEl)}</b> : cliente.pagaEl === hoyISO() ? <b className="texto-ok"> · paga hoy</b> : ` · paga ${fechaCorta(cliente.pagaEl)}`)}
                   </span>
                 </div>
                 <div className="item-derecha">
@@ -96,9 +97,10 @@ function FormCliente({ cliente, onCerrar, onGuardado }: { cliente?: Cliente; onC
   const [nombre, setNombre] = useState(cliente?.nombre ?? '')
   const [telefono, setTelefono] = useState(cliente?.telefono ?? '')
   const [nota, setNota] = useState(cliente?.nota ?? '')
+  const [pagaEl, setPagaEl] = useState(cliente?.pagaEl ?? '')
   async function guardar() {
     if (!nombre.trim()) return
-    await guardarCliente({ nombre: nombre.trim(), telefono: telefono.trim() || undefined, nota: nota.trim() || undefined }, cliente)
+    await guardarCliente({ nombre: nombre.trim(), telefono: telefono.trim() || undefined, nota: nota.trim() || undefined, pagaEl: pagaEl || undefined }, cliente)
     onGuardado()
   }
   return (
@@ -111,6 +113,9 @@ function FormCliente({ cliente, onCerrar, onGuardado }: { cliente?: Cliente; onC
       </Campo>
       <Campo label="Nota (opcional)">
         <input type="text" placeholder="Ej. paga los viernes" value={nota} onChange={(e) => setNota(e.target.value)} />
+      </Campo>
+      <Campo label="Fecha de pago acordada (opcional)" ayuda="Te avisamos cuando venza">
+        <input type="date" value={pagaEl} onChange={(e) => setPagaEl(e.target.value)} />
       </Campo>
       <button className="btn-primario grande ancho" disabled={!nombre.trim()} onClick={guardar}>Guardar</button>
     </Modal>

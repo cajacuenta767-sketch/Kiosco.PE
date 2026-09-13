@@ -14,6 +14,10 @@
 
 ## Los módulos
 
+### 👋 Bienvenida (solo la primera vez)
+- Nombre de la bodega y tres caminos: empezar con 28 productos de ejemplo, empezar desde cero, o vincular este celular a una bodega que ya usa Kiosco.PE.
+- Sin cuenta, sin correo, sin permisos. En 10 segundos está vendiendo.
+
 ### 🛒 Vender
 - Cuadrícula de productos con nombre, precio y stock visible. Los que se acaban se ven en ámbar; los agotados, en rojo.
 - Búsqueda instantánea por nombre o código de barras (un lector USB/Bluetooth escribe el código y Enter agrega el producto).
@@ -28,6 +32,7 @@
 - Tres números arriba: cuántos productos tienes, cuántos están **por acabarse**, cuántos **agotados**. Tocar filtra.
 - Cuánto dinero tienes invertido en mercadería y cuánto valdría vendido.
 - Cada producto muestra cuánto ganas por unidad (en soles y en %). Si el precio de compra supera el de venta, la app avisa.
+- **Últimos movimientos** de cada producto (venta, ingreso, ajuste, merma) al editarlo: responde "¿por qué tengo 3 si ayer tenía 10?".
 - **＋ stock:** ingreso de mercadería en dos campos: cuánto llegó y a cuánto te lo dejaron. Si el proveedor subió el precio,
   se actualiza aquí y la ganancia se recalcula sola.
 - Editar el stock a mano se registra como ajuste (conteo físico), para que el historial cuadre.
@@ -36,6 +41,7 @@
 - Arriba: cuánto te deben en total y cuántos clientes deben. Es la primera cifra que el bodeguero quiere ver.
 - Lista ordenada por deuda. Cada cliente muestra su último movimiento.
 - Detalle del cliente: deuda en grande, registrar abono (parcial o "pagó todo"), historial completo con qué se llevó.
+- **Fecha de pago acordada** por cliente: la lista marca "paga hoy" o "venció".
 - **Recordar por WhatsApp:** un toque abre WhatsApp con el mensaje listo: "Hola Don Pepe, le escribo de Bodega San Martín.
   Su cuenta pendiente es de S/ 7.00. ¡Gracias!". Cordial, sin incomodar, y funciona.
 
@@ -44,10 +50,17 @@
 - Desglose por método de pago: cuánto hay en efectivo, cuánto entró por Yape, cuánto se fió.
 - Gráfico de los últimos 7 días, con el total vendido y ganado en la semana.
 - Lo más vendido del día.
-- Lista de ventas del día. Tocar una muestra el detalle y permite anularla (el stock vuelve y el fiado se borra).
+- Lista de ventas del día. Tocar una muestra el detalle, permite enviar un **comprobante por WhatsApp** y anularla (el stock vuelve y el fiado se borra).
+- **Resumen del mes:** vendido, ganancia neta, gastos, promedio diario, mejor día, fiado otorgado y cobrado, lo más vendido.
+- **Gastos del día** con categoría y si salieron de caja; la ganancia mostrada es neta.
 - **Cerrar caja:** con cuánto empezaste + ventas en efectivo = cuánto deberías tener. Ingresas cuánto hay y ves si cuadra,
   falta o sobra. Queda registrado por día.
 - Navegación por días para revisar cualquier fecha pasada.
+
+### ☁️ Nube (dentro de Más)
+- Activar respaldo con el nombre de la bodega: sin contraseña, este celular queda como el primero.
+- Sumar otro celular con un código de 6 dígitos que vale 10 minutos. Los dos venden sobre el mismo stock.
+- Estado siempre visible: todo respaldado, cambios por subir, o sin conexión (y sigue funcionando).
 
 ### ⚙️ Más
 - Nombre de la bodega (se usa en los mensajes de WhatsApp).
@@ -66,7 +79,7 @@
 
 ## Lo que deliberadamente NO hace (todavía)
 
-- No pide crear cuenta. No pide correo ni contraseña.
+- No pide correo ni contraseña, ni siquiera para la nube.
 - No emite boletas electrónicas. Primero cobrar bien; SUNAT viene en la Fase 3.
 - No tiene múltiples usuarios ni permisos. Es la bodega de una persona.
 - No tiene informes en PDF ni exportación a Excel. El bodeguero quiere ver la cifra, no imprimirla.

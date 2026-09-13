@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db } from './db/db'
-import { sembrarSiVacio } from './db/seed'
+import { db, getConfig, setConfig } from './db/db'
 import { migrarDesdeVersionAnterior } from './db/migracion'
 import { iniciarSync, leerEstado } from './sync/motor'
 import { Toast } from './components/ui'
@@ -10,6 +9,7 @@ import { Stock } from './screens/Stock'
 import { Fiados } from './screens/Fiados'
 import { Caja } from './screens/Caja'
 import { Ajustes } from './screens/Ajustes'
+import { Bienvenida } from './screens/Bienvenida'
 import { hoyISO } from '@kiosco/shared'
 import { deudaDe } from './lib/acciones'
 
@@ -28,11 +28,19 @@ export default function App() {
   const [toast, setToast] = useState<string | null>(null)
   const timer = useRef<number | undefined>(undefined)
   const [listo, setListo] = useState(false)
+  const [bienvenida, setBienvenida] = useState(false)
 
   useEffect(() => {
-    migrarDesdeVersionAnterior()
-      .then(() => sembrarSiVacio())
-      .finally(() => setListo(true))
+    ;(async () => {
+      try {
+        const migrado = await migrarDesdeVersionAnterior()
+        if (migrado) await setConfig('bienvenida', '1')
+        const hecha = (await getConfig('bienvenida')) === '1' || (await db.productos.count()) > 0
+        setBienvenida(!hecha)
+      } finally {
+        setListo(true)
+      }
+    })()
     return iniciarSync()
   }, [])
   const nube = useLiveQuery(leerEstado, [])
@@ -64,6 +72,7 @@ export default function App() {
   }
 
   if (!listo) return <div className="cargando">Cargando tu bodega…</div>
+  if (bienvenida) return <Bienvenida onListo={() => setBienvenida(false)} />
 
   return (
     <div className="app">

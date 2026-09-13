@@ -22,7 +22,7 @@ export function rutasBodegas(app: FastifyInstance, db: DB) {
   const auth = requerirSesion(db)
 
   /** Crea la cuenta de una bodega y el token de su primer dispositivo. Sin correo ni contraseña. */
-  app.post('/v1/bodegas', async (req, reply) => {
+  app.post('/v1/bodegas', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (req, reply) => {
     const r = Registro.safeParse(req.body)
     if (!r.success) return reply.code(400).send({ error: 'Datos inválidos', detalle: r.error.issues })
     const token = generarToken()
@@ -64,7 +64,7 @@ export function rutasBodegas(app: FastifyInstance, db: DB) {
   })
 
   /** El celular nuevo canjea el código y recibe su propio token. */
-  app.post('/v1/dispositivos/vincular', async (req, reply) => {
+  app.post('/v1/dispositivos/vincular', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (req, reply) => {
     const r = Vinculo.safeParse(req.body)
     if (!r.success) return reply.code(400).send({ error: 'El código debe tener 6 dígitos' })
     const token = generarToken()
