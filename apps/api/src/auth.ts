@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from 'node:crypto'
+import { createHash, randomBytes, randomInt } from 'node:crypto'
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import { eq } from 'drizzle-orm'
 import type { DB } from './db/cliente.ts'
@@ -10,6 +10,10 @@ export function generarToken(): string {
 
 export function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex')
+}
+
+export function generarCodigo(): string {
+  return String(randomInt(0, 1_000_000)).padStart(6, '0')
 }
 
 export interface Sesion {

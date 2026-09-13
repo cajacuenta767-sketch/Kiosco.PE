@@ -22,6 +22,18 @@ export const dispositivos = pgTable(
   (t) => [index('dispositivos_token_idx').on(t.tokenHash)],
 )
 
+/** Código de 6 dígitos, válido 10 minutos, para vincular otro celular a la misma bodega. */
+export const codigosVinculo = pgTable(
+  'codigos_vinculo',
+  {
+    codigo: text('codigo').primaryKey(),
+    bodegaId: uuid('bodega_id').notNull().references(() => bodegas.id, { onDelete: 'cascade' }),
+    expiraEn: timestamp('expira_en', { withTimezone: true }).notNull(),
+    usado: boolean('usado').notNull().default(false),
+  },
+  (t) => [index('codigos_bodega_idx').on(t.bodegaId)],
+)
+
 /**
  * Bitácora de cambios: la unidad de sincronización.
  * Cada fila es "la tabla X, el registro Y, quedó así, a esta hora, desde este dispositivo".

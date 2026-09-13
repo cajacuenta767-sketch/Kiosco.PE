@@ -42,8 +42,8 @@ export function resumirVentas(ventas: Venta[], dia: string): ResumenDia {
 }
 
 /** Unidades vendidas por producto. */
-export function unidadesVendidas(ventas: Venta[]): Map<number, number> {
-  const m = new Map<number, number>()
+export function unidadesVendidas(ventas: Venta[]): Map<string, number> {
+  const m = new Map<string, number>()
   for (const v of ventas) for (const i of v.items) if (i.productoId) m.set(i.productoId, (m.get(i.productoId) ?? 0) + i.cantidad)
   return m
 }
@@ -71,7 +71,7 @@ export function pedidoSugerido(productos: Producto[], ventas14: Venta[]): LineaP
   const lineas: LineaPedido[] = []
   for (const p of productos) {
     if (!p.activo) continue
-    const porDia = (vendido.get(p.id!) ?? 0) / 14
+    const porDia = (vendido.get(p.id) ?? 0) / 14
     const porSemana = porDia * 7
     const diasDeStock = porDia > 0 ? p.stock / porDia : null
     const objetivo = Math.max(porSemana, p.stockMinimo * 2)

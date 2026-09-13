@@ -1,4 +1,5 @@
-import { db, type Producto } from './db'
+import { ahoraISO, uuid } from '@kiosco/shared'
+import { db, setConfig, type MovimientoStock, type Producto } from './db'
 
 type Semilla = [string, string, number, number, number, number, 'und' | 'kg']
 //               nombre, categoria, venta, compra, stock, minimo, unidad
@@ -34,20 +35,21 @@ const CATALOGO: Semilla[] = [
   ['Fósforos Inti', 'Otros', 0.5, 0.35, 30, 10, 'und'],
 ]
 
+/** Carga un catálogo de ejemplo si no hay productos. Marca la config para que, al vincular con otra bodega, se pueda descartar. */
 export async function sembrarSiVacio() {
   const n = await db.productos.count()
   if (n > 0) return
-  const ahora = new Date().toISOString()
-  const filas: Producto[] = CATALOGO.map(([nombre, categoria, precioVenta, precioCompra, stock, stockMinimo, unidad]) => ({
-    nombre,
-    categoria,
-    precioVenta,
-    precioCompra,
-    stock,
-    stockMinimo,
-    unidad,
-    activo: true,
-    creadoEn: ahora,
-  }))
-  await db.productos.bulkAdd(filas)
+  const ahora = ahoraISO()
+  const filas: Producto[] = []
+  const movs: MovimientoStock[] = []
+  for (const [nombre, categoria, precioVenta, precioCompra, stock, stockMinimo, unidad] of CATALOGO) {
+    const id = uuid()
+    filas.push({ id, actualizadoEn: ahora, nombre, categoria, precioVenta, precioCompra, stock, stockMinimo, unidad, activo: true, creadoEn: ahora })
+    movs.push({ id: uuid(), actualizadoEn: ahora, productoId: id, fecha: ahora, tipo: 'ingreso', cantidad: stock, nota: 'Stock inicial' })
+  }
+  await db.transaction('rw', [db.productos, db.movimientosStock, db.config], async () => {
+    await db.productos.bulkAdd(filas)
+    await db.movimientosStock.bulkAdd(movs)
+    await setConfig('catalogoEjemplo', '1')
+  })
 }

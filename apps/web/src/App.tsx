@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from './db/db'
 import { sembrarSiVacio } from './db/seed'
+import { migrarDesdeVersionAnterior } from './db/migracion'
+import { iniciarSync, leerEstado } from './sync/motor'
 import { Toast } from './components/ui'
 import { Vender } from './screens/Vender'
 import { Stock } from './screens/Stock'
@@ -28,8 +30,13 @@ export default function App() {
   const [listo, setListo] = useState(false)
 
   useEffect(() => {
-    sembrarSiVacio().finally(() => setListo(true))
+    migrarDesdeVersionAnterior()
+      .then(() => sembrarSiVacio())
+      .finally(() => setListo(true))
+    return iniciarSync()
   }, [])
+  const nube = useLiveQuery(leerEstado, [])
+  const pendientes = useLiveQuery(() => db.cola.count(), []) ?? 0
 
   const avisar = useCallback((m: string) => {
     setToast(m)
@@ -65,7 +72,14 @@ export default function App() {
           <h1>{nombre || 'Kiosco.PE'}</h1>
           <span className="cab-sub">{TABS.find((t) => t.id === tab)?.label}</span>
         </div>
-        {tab !== 'caja' && totalHoy > 0 && <button className="cab-hoy" onClick={() => setTab('caja')}>Hoy S/ {totalHoy.toFixed(2)}</button>}
+        <div className="cab-derecha">
+          {nube?.activa && (
+            <button className={'cab-nube' + (nube.error ? ' error' : pendientes > 0 || nube.sincronizando ? ' pendiente' : ' ok')} onClick={() => setTab('ajustes')} title={nube.error ? `Sin conexión: ${nube.error}` : pendientes > 0 ? `${pendientes} cambios por subir` : 'Nube al día'} aria-label="Estado de la nube">
+              ☁️{pendientes > 0 && <span>{pendientes}</span>}
+            </button>
+          )}
+          {tab !== 'caja' && totalHoy > 0 && <button className="cab-hoy" onClick={() => setTab('caja')}>Hoy S/ {totalHoy.toFixed(2)}</button>}
+        </div>
       </header>
 
       <main className="contenido">

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, type CategoriaGasto, type Gasto, type Venta } from '../db/db'
-import { CATEGORIAS_GASTO, METODOS, registrarGasto, resumirVentas } from '../lib/acciones'
+import { CATEGORIAS_GASTO, METODOS, anularVenta, cerrarCaja, eliminarGasto, registrarGasto, resumirVentas } from '../lib/acciones'
 import { aDia, diaLabel, fechaLarga, hora, hoyISO, redondear, soles } from '@kiosco/shared'
 import { Campo, Modal, Vacio } from '../components/ui'
 
@@ -37,15 +37,7 @@ export function Caja({ avisar }: { avisar: (m: string) => void }) {
 
   async function anular(v: Venta) {
     if (!confirm(`¿Anular la venta de ${soles(v.total)}? El stock vuelve a su lugar.`)) return
-    await db.transaction('rw', [db.ventas, db.productos, db.movimientosStock, db.movimientosFiado], async () => {
-      for (const i of v.items) {
-        const p = await db.productos.get(i.productoId)
-        if (p) await db.productos.update(p.id!, { stock: redondear(p.stock + i.cantidad) })
-        await db.movimientosStock.add({ productoId: i.productoId, fecha: new Date().toISOString(), tipo: 'ajuste', cantidad: i.cantidad, nota: `Anulación venta #${v.id}` })
-      }
-      if (v.metodoPago === 'fiado') await db.movimientosFiado.where('ventaId').equals(v.id!).delete()
-      await db.ventas.delete(v.id!)
-    })
+    await anularVenta(v)
     setDetalle(null)
     avisar('Venta anulada')
   }
@@ -100,7 +92,7 @@ export function Caja({ avisar }: { avisar: (m: string) => void }) {
             <li key={g.id} className="fila-simple">
               <span>{CATEGORIAS_GASTO.find((c) => c.id === g.categoria)?.icono} {g.nota || CATEGORIAS_GASTO.find((c) => c.id === g.categoria)?.label}{!g.deCaja && <em className="item-sub"> · no salió de caja</em>}</span>
               <strong className="texto-peligro">−{soles(g.monto)}</strong>
-              <button className="btn-icono chico" aria-label="Eliminar gasto" onClick={async () => { if (confirm('¿Eliminar este gasto?')) await db.gastos.delete(g.id!) }}>✕</button>
+              <button className="btn-icono chico" aria-label="Eliminar gasto" onClick={async () => { if (confirm('¿Eliminar este gasto?')) await eliminarGasto(g.id) }}>✕</button>
             </li>
           ))}
         </ul>
@@ -217,7 +209,7 @@ function CerrarCaja({ efectivoVentas, gastosDeCaja, totalVentas, dia, onCerrar, 
   const esperado = redondear((Number(inicial) || 0) + efectivoVentas - gastosDeCaja)
   const dif = redondear((Number(contado) || 0) - esperado)
   async function guardar() {
-    await db.cierres.add({ dia, fecha: new Date().toISOString(), montoInicial: Number(inicial) || 0, efectivoEsperado: esperado, efectivoContado: Number(contado) || 0, diferencia: dif, totalVentas })
+    await cerrarCaja({ dia, montoInicial: Number(inicial) || 0, efectivoEsperado: esperado, efectivoContado: Number(contado) || 0, diferencia: dif, totalVentas })
     onHecho()
   }
   return (

@@ -14,13 +14,13 @@ viaja a la API y se guarda en Postgres. Una sola persona puede mantener todo el 
 | **Estilos** | CSS plano con variables | 15 KB, cero dependencias, modo oscuro con `data-tema`. |
 | **Backend** | Node 22 + Fastify 5 | El servidor HTTP más rápido del ecosistema Node, con validación por esquema y logs integrados. |
 | **Validación** | Zod 4 | Un esquema valida el JSON de entrada y genera el tipo TypeScript. |
-| **Base de datos nube** | PostgreSQL | Fiable, gratis en Neon/Supabase para empezar, JSONB para la bitácora de cambios. |
+| **Base de datos nube** | PostgreSQL (o PGlite embebido) | Sin `DATABASE_URL` la API usa PGlite, un Postgres dentro del proceso: corre y se prueba en cualquier máquina sin instalar nada. Con miles de bodegas, Postgres administrado. |
 | **ORM / migraciones** | Drizzle | Esquema en TypeScript, SQL transparente, migraciones versionadas. |
 | **Android / Play Store** | Trusted Web Activity con Bubblewrap | La misma PWA empaquetada como app nativa. Cero código Java/Kotlin. |
-| **Pruebas** | `node:test` (lógica) + Playwright (flujo completo) | Sin frameworks extra; la lógica de dinero se prueba sola. |
+| **Pruebas** | `node:test` (lógica y API sobre PGlite en memoria) + Playwright (flujo completo, dos celulares) | Sin frameworks extra; la lógica de dinero y la sincronización se prueban solas. |
 | **CI** | GitHub Actions | Cada push: tipos, pruebas, build web, build API. |
 | **Hosting web** | Cloudflare Pages / Netlify / Vercel | Estático, gratis, HTTPS automático (obligatorio para PWA y TWA). |
-| **Hosting API** | Fly.io / Railway / Render | Un contenedor Node pequeño. Postgres administrado aparte. |
+| **Hosting** | Un contenedor (Fly.io / Railway / Render) | La misma imagen sirve la PWA y la API bajo `/api`. Ver `docs/06-despliegue.md`. |
 
 ### Lo que se descartó, y por qué
 - **React Native / Flutter:** dos bases de código, tiendas obligatorias, y el bodeguero no descarga apps. La PWA llega
@@ -80,11 +80,14 @@ Kiosco.PE/
 │   │   ├── vite.config.ts       Manifest PWA, service worker, íconos.
 │   │   ├── public/              Íconos y .well-known/assetlinks.json (enlace con la app Android).
 │   │   └── src/
-│   │       ├── db/db.ts         Esquema Dexie (IndexedDB) con versiones y migraciones.
+│   │       ├── db/db.ts         Esquema Dexie (IndexedDB): tablas con id global y cola de cambios.
+│   │       ├── db/repo.ts       poner/borrar: escribe y encola para la nube en la misma transacción.
+│   │       ├── db/migracion.ts  Migra datos de las versiones 0.1/0.2 (ids numéricos) una sola vez.
 │   │       ├── db/seed.ts       Catálogo de ejemplo de una bodega peruana.
+│   │       ├── sync/motor.ts    Motor de sincronización: activar nube, vincular, subir, bajar, aplicar.
 │   │       ├── lib/acciones.ts  Transacciones: registrar venta, ingresar stock, abonar, gastos, respaldo.
 │   │       ├── components/      Modal, Campo, Toast, Escáner de códigos con cámara.
-│   │       ├── screens/         Vender · Stock · Fiados · Caja · Ajustes.
+│   │       ├── screens/         Vender · Stock · Fiados · Caja · Ajustes · Nube.
 │   │       ├── App.tsx          Pestañas, cabecera, tema.
 │   │       └── styles.css       Sistema de diseño (variables, modo oscuro, móvil primero).
 │   │
@@ -92,19 +95,22 @@ Kiosco.PE/
 │       ├── .env.example         PORT, DATABASE_URL, CORS_ORIGENES.
 │       ├── drizzle.config.ts    Migraciones.
 │       └── src/
-│           ├── index.ts         Arranque Fastify, CORS, /salud. Sin DATABASE_URL corre en modo sin nube.
-│           ├── auth.ts          Tokens de dispositivo (hash SHA-256) y middleware de sesión.
-│           ├── db/schema.ts     Tablas: bodegas, dispositivos, cambios.
-│           ├── db/cliente.ts    Conexión Postgres.
+│           ├── index.ts         Arranque: conecta, crea la app, escucha, apaga limpio.
+│           ├── app.ts           Fábrica Fastify: CORS, límite de peticiones, /api/*, sirve la PWA.
+│           ├── app.test.ts      Prueba de integración completa sobre PGlite en memoria.
+│           ├── auth.ts          Tokens de dispositivo (hash SHA-256), códigos de vínculo, sesión.
+│           ├── db/schema.ts     Tablas: bodegas, dispositivos, codigos_vinculo, cambios.
+│           ├── db/cliente.ts    Postgres o PGlite + migraciones automáticas.
 │           └── rutas/
-│               ├── bodegas.ts   POST /v1/bodegas — crear cuenta y primer dispositivo.
+│               ├── bodegas.ts   Crear cuenta, vincular celular, ver dispositivos, desconectar.
 │               └── sync.ts      POST /v1/sync/push · GET /v1/sync/pull.
 │
 ├── android/                     Empaquetado para Play Store (TWA).
 │   ├── twa-manifest.json        Configuración Bubblewrap: paquete pe.kiosco.app, colores, ícono, versión.
 │   └── README.md                Paso a paso hasta publicar.
 │
-└── docs/                        Oportunidad, producto, arquitectura, hoja de ruta, este documento.
+├── Dockerfile · fly.toml        Un contenedor sirve PWA + API. Datos en volumen (PGlite) o Postgres externo.
+└── docs/                        Oportunidad, producto, arquitectura, hoja de ruta, este documento, despliegue.
 ```
 
 Regla de dependencias: `shared` no depende de nadie. `web` y `api` dependen de `shared`. `web` y `api` nunca se importan entre sí.
@@ -159,8 +165,18 @@ GET  /salud
   → 200 { ok, servicio, version, baseDeDatos, hora }
 ```
 
-Pendiente en el cliente (Fase 2): ids UUID en lugar de autoincrementales, columna `actualizadoEn` en cada tabla Dexie,
-una cola local de cambios pendientes y un worker que empuja/baja cuando hay red. La API ya está lista para recibirlo.
+Implementado en el cliente (`apps/web/src/sync/motor.ts`): ids UUID en todas las tablas, `actualizadoEn` por fila,
+cola local `cola` que llena `db/repo.ts` en cada escritura, y un motor que sube y baja al iniciar, al volver la red,
+cada 45 segundos y a los pocos segundos de cada cambio. El stock nunca viaja: se reconstruye sumando `movimientosStock`.
+
+```
+POST /api/v1/dispositivos/codigo      Authorization: Bearer   → { codigo: "274257", minutos: 10 }
+POST /api/v1/dispositivos/vincular    { codigo, dispositivo? } → 201 { bodegaId, dispositivoId, token, nombre }
+GET  /api/v1/bodegas/actual           Authorization: Bearer   → { nombre, dispositivos: [...] }
+DELETE /api/v1/dispositivos/actual    Authorization: Bearer   → { ok }
+```
+
+Todas las rutas van bajo el prefijo `/api` para convivir con la PWA en el mismo origen.
 
 ## Seguridad y datos
 

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, type Cliente, type MovimientoFiado } from '../db/db'
-import { deudaDe, registrarAbono } from '../lib/acciones'
+import { deudaDe, guardarCliente, registrarAbono } from '../lib/acciones'
 import { fechaCorta, hora, soles } from '@kiosco/shared'
 import { Campo, Modal, Vacio } from '../components/ui'
 
@@ -14,7 +14,7 @@ export function Fiados({ avisar }: { avisar: (m: string) => void }) {
   const [nuevo, setNuevo] = useState(false)
 
   const porCliente = useMemo(() => {
-    const m = new Map<number, MovimientoFiado[]>()
+    const m = new Map<string, MovimientoFiado[]>()
     for (const mv of movs) {
       const arr = m.get(mv.clienteId) ?? []
       arr.push(mv)
@@ -25,7 +25,7 @@ export function Fiados({ avisar }: { avisar: (m: string) => void }) {
 
   const filas = clientes
     .map((c) => {
-      const lista = porCliente.get(c.id!) ?? []
+      const lista = porCliente.get(c.id) ?? []
       const ultimo = lista[lista.length - 1]
       return { cliente: c, deuda: deudaDe(lista), ultimo }
     })
@@ -82,7 +82,7 @@ export function Fiados({ avisar }: { avisar: (m: string) => void }) {
       {abierto && (
         <DetalleCliente
           cliente={abierto}
-          movs={porCliente.get(abierto.id!) ?? []}
+          movs={porCliente.get(abierto.id) ?? []}
           nombreBodega={nombreBodega}
           onCerrar={() => setAbierto(null)}
           avisar={avisar}
@@ -98,9 +98,7 @@ function FormCliente({ cliente, onCerrar, onGuardado }: { cliente?: Cliente; onC
   const [nota, setNota] = useState(cliente?.nota ?? '')
   async function guardar() {
     if (!nombre.trim()) return
-    const datos = { nombre: nombre.trim(), telefono: telefono.trim() || undefined, nota: nota.trim() || undefined }
-    if (cliente?.id) await db.clientes.update(cliente.id, datos)
-    else await db.clientes.add({ ...datos, creadoEn: new Date().toISOString() })
+    await guardarCliente({ nombre: nombre.trim(), telefono: telefono.trim() || undefined, nota: nota.trim() || undefined }, cliente)
     onGuardado()
   }
   return (
@@ -127,7 +125,7 @@ function DetalleCliente({ cliente, movs, nombreBodega, onCerrar, avisar }: { cli
 
   async function abonar(cantidad: number) {
     try {
-      await registrarAbono(cliente.id!, cantidad)
+      await registrarAbono(cliente.id, cantidad)
       setMonto('')
       avisar(`Abono de ${soles(cantidad)} registrado`)
     } catch (e) {

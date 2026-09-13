@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, type Producto, type Unidad } from '../db/db'
-import { CATEGORIAS, ajustarStock, diasAtras, ingresarMercaderia, pedidoSugerido, textoPedido } from '../lib/acciones'
+import { CATEGORIAS, desactivarProducto, diasAtras, guardarProducto, ingresarMercaderia, pedidoSugerido, textoPedido } from '../lib/acciones'
 import { hoyISO, redondear, soles } from '@kiosco/shared'
 import { Campo, Modal, Vacio } from '../components/ui'
 import { Escaner } from '../components/Escaner'
@@ -165,7 +165,7 @@ function FormProducto({ producto, onCerrar, onGuardado }: { producto: Producto |
     if (!f.nombre.trim()) return setError('Ponle un nombre al producto')
     if (venta <= 0) return setError('El precio de venta debe ser mayor a cero')
     if (compra > venta) return setError('Ojo: el precio de compra es mayor al de venta. Estarías perdiendo plata.')
-    const datos: Producto = {
+    const datos = {
       nombre: f.nombre.trim(),
       categoria: f.categoria,
       codigoBarras: f.codigoBarras.trim() || undefined,
@@ -175,23 +175,15 @@ function FormProducto({ producto, onCerrar, onGuardado }: { producto: Producto |
       stockMinimo: Number(f.stockMinimo) || 0,
       unidad: f.unidad,
       activo: true,
-      creadoEn: producto?.creadoEn ?? new Date().toISOString(),
     }
-    if (producto?.id) {
-      const stockAnterior = producto.stock
-      await db.productos.update(producto.id, datos)
-      if (stockAnterior !== datos.stock) await ajustarStock(producto.id, datos.stock, 'ajuste')
-      onGuardado('Producto actualizado')
-    } else {
-      await db.productos.add(datos)
-      onGuardado('Producto agregado')
-    }
+    await guardarProducto(datos, producto ?? undefined)
+    onGuardado(producto ? 'Producto actualizado' : 'Producto agregado')
   }
 
   async function desactivar() {
-    if (!producto?.id) return
+    if (!producto) return
     if (!confirm(`¿Quitar "${producto.nombre}" de tu lista? Las ventas pasadas se conservan.`)) return
-    await db.productos.update(producto.id, { activo: false })
+    await desactivarProducto(producto)
     onGuardado('Producto quitado')
   }
 
@@ -256,7 +248,7 @@ function Ingreso({ producto, onCerrar, onHecho }: { producto: Producto; onCerrar
   const n = Number(cant) || 0
   async function guardar() {
     if (n <= 0) return
-    await ingresarMercaderia(producto.id!, n, Number(costo) || undefined)
+    await ingresarMercaderia(producto.id, n, Number(costo) || undefined)
     onHecho(`Ingresaste ${n} ${producto.unidad} de ${producto.nombre}`)
   }
   return (

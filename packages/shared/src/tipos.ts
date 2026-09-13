@@ -4,8 +4,13 @@ export type MetodoPago = 'efectivo' | 'yape' | 'plin' | 'tarjeta' | 'fiado'
 export type Unidad = 'und' | 'kg'
 export type CategoriaGasto = 'proveedor' | 'pasaje' | 'servicios' | 'personal' | 'otro'
 
-export interface Producto {
-  id?: number
+/** Campos comunes a todo registro sincronizable. `id` es un UUID global; `actualizadoEn` decide conflictos. */
+export interface Registro {
+  id: string
+  actualizadoEn: string
+}
+
+export interface Producto extends Registro {
   nombre: string
   categoria: string
   codigoBarras?: string
@@ -19,55 +24,50 @@ export interface Producto {
 }
 
 export interface ItemVenta {
-  productoId: number // 0 = venta rápida sin producto del catálogo
+  productoId: string // '' = venta rápida sin producto del catálogo
   nombre: string
   cantidad: number
   precio: number
   costo: number
 }
 
-export interface Venta {
-  id?: number
+export interface Venta extends Registro {
   fecha: string
   dia: string // YYYY-MM-DD, para agrupar rápido
   items: ItemVenta[]
   total: number
   costoTotal: number
   metodoPago: MetodoPago
-  clienteId?: number
+  clienteId?: string
   pagoCon?: number
   vuelto?: number
 }
 
-export interface Cliente {
-  id?: number
+export interface Cliente extends Registro {
   nombre: string
   telefono?: string
   nota?: string
   creadoEn: string
 }
 
-export interface MovimientoFiado {
-  id?: number
-  clienteId: number
+export interface MovimientoFiado extends Registro {
+  clienteId: string
   fecha: string
   tipo: 'fiado' | 'abono'
   monto: number
-  ventaId?: number
+  ventaId?: string
   nota?: string
 }
 
-export interface MovimientoStock {
-  id?: number
-  productoId: number
+export interface MovimientoStock extends Registro {
+  productoId: string
   fecha: string
   tipo: 'venta' | 'ingreso' | 'ajuste' | 'merma'
   cantidad: number // positivo entra, negativo sale
   nota?: string
 }
 
-export interface CierreCaja {
-  id?: number
+export interface CierreCaja extends Registro {
   dia: string
   fecha: string
   montoInicial: number
@@ -78,8 +78,7 @@ export interface CierreCaja {
   nota?: string
 }
 
-export interface Gasto {
-  id?: number
+export interface Gasto extends Registro {
   fecha: string
   dia: string
   monto: number

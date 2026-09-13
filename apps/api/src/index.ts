@@ -1,26 +1,23 @@
 import 'dotenv/config'
-import Fastify from 'fastify'
-import cors from '@fastify/cors'
 import { conectar } from './db/cliente.ts'
-import { rutasBodegas } from './rutas/bodegas.ts'
-import { rutasSync } from './rutas/sync.ts'
+import { crearApp } from './app.ts'
 
-const app = Fastify({ logger: true })
-const db = conectar()
-
-await app.register(cors, {
-  origin: (process.env.CORS_ORIGENES ?? 'http://localhost:5173').split(',').map((s) => s.trim()),
+const conexion = await conectar()
+const app = await crearApp({
+  conexion,
+  logger: true,
+  servirWeb: process.env.SERVIR_WEB !== 'false',
+  corsOrigenes: process.env.CORS_ORIGENES ? process.env.CORS_ORIGENES.split(',').map((s) => s.trim()) : undefined,
 })
 
-app.get('/salud', async () => ({ ok: true, servicio: 'kiosco-api', version: '0.2.0', baseDeDatos: db !== null, hora: new Date().toISOString() }))
-
-if (db) {
-  rutasBodegas(app, db)
-  rutasSync(app, db)
-} else {
-  app.log.warn('Sin DATABASE_URL: la API corre sin base de datos. Solo /salud está disponible.')
-  app.all('/v1/*', async (_req, reply) => reply.code(503).send({ error: 'La nube no está configurada en este servidor' }))
-}
-
+app.log.info(`Base de datos: ${conexion.motor}`)
 const puerto = Number(process.env.PORT ?? 3000)
 await app.listen({ port: puerto, host: '0.0.0.0' })
+
+for (const señal of ['SIGINT', 'SIGTERM'] as const) {
+  process.on(señal, async () => {
+    await app.close()
+    await conexion.cerrar()
+    process.exit(0)
+  })
+}

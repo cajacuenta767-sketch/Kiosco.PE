@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, type Cliente, type MetodoPago, type Producto } from '../db/db'
-import { METODOS, diasAtras, lineaLibre, registrarVenta, totalCarrito, unidadesVendidas, type LineaCarrito } from '../lib/acciones'
+import { METODOS, diasAtras, guardarCliente, lineaLibre, registrarVenta, totalCarrito, unidadesVendidas, type LineaCarrito } from '../lib/acciones'
 import { hoyISO, redondear, soles } from '@kiosco/shared'
 import { Campo, Modal } from '../components/ui'
 import { Escaner } from '../components/Escaner'
@@ -35,8 +35,8 @@ export function Vender({ avisar }: { avisar: (m: string) => void }) {
       const okC = categoria === 'Todo' || categoria === MAS_VENDIDOS || p.categoria === categoria
       return okQ && okC
     })
-    if (categoria === MAS_VENDIDOS) lista = lista.filter((p) => (vendidos.get(p.id!) ?? 0) > 0).slice().sort((a, b) => (vendidos.get(b.id!) ?? 0) - (vendidos.get(a.id!) ?? 0)).slice(0, 16)
-    else if (categoria === 'Todo' && !q && hayHistorial) lista = lista.slice().sort((a, b) => (vendidos.get(b.id!) ?? 0) - (vendidos.get(a.id!) ?? 0) || a.nombre.localeCompare(b.nombre))
+    if (categoria === MAS_VENDIDOS) lista = lista.filter((p) => (vendidos.get(p.id) ?? 0) > 0).slice().sort((a, b) => (vendidos.get(b.id) ?? 0) - (vendidos.get(a.id) ?? 0)).slice(0, 16)
+    else if (categoria === 'Todo' && !q && hayHistorial) lista = lista.slice().sort((a, b) => (vendidos.get(b.id) ?? 0) - (vendidos.get(a.id) ?? 0) || a.nombre.localeCompare(b.nombre))
     return lista
   }, [activos, busqueda, categoria, vendidos, hayHistorial])
 
@@ -78,7 +78,7 @@ export function Vender({ avisar }: { avisar: (m: string) => void }) {
     [productos],
   )
 
-  async function confirmar(metodo: MetodoPago, clienteId?: number, pagoCon?: number) {
+  async function confirmar(metodo: MetodoPago, clienteId?: string, pagoCon?: number) {
     try {
       await registrarVenta({ lineas: carrito, metodoPago: metodo, clienteId, pagoCon })
       setCarrito([])
@@ -212,10 +212,10 @@ function VentaRapida({ onCerrar, onAgregar }: { onCerrar: () => void; onAgregar:
   )
 }
 
-function Cobrar({ total, clientes, onCerrar, onConfirmar }: { total: number; clientes: Cliente[]; onCerrar: () => void; onConfirmar: (m: MetodoPago, clienteId?: number, pagoCon?: number) => Promise<void> }) {
+function Cobrar({ total, clientes, onCerrar, onConfirmar }: { total: number; clientes: Cliente[]; onCerrar: () => void; onConfirmar: (m: MetodoPago, clienteId?: string, pagoCon?: number) => Promise<void> }) {
   const [metodo, setMetodo] = useState<MetodoPago>('efectivo')
   const [pagoCon, setPagoCon] = useState<string>('')
-  const [clienteId, setClienteId] = useState<number | undefined>(clientes[0]?.id)
+  const [clienteId, setClienteId] = useState<string | undefined>(clientes[0]?.id)
   const [nuevoCliente, setNuevoCliente] = useState('')
   const [guardando, setGuardando] = useState(false)
 
@@ -229,7 +229,7 @@ function Cobrar({ total, clientes, onCerrar, onConfirmar }: { total: number; cli
     try {
       let cid = clienteId
       if (metodo === 'fiado' && nuevoCliente.trim()) {
-        cid = await db.clientes.add({ nombre: nuevoCliente.trim(), creadoEn: new Date().toISOString() })
+        cid = (await guardarCliente({ nombre: nuevoCliente.trim() })).id
       }
       await onConfirmar(metodo, cid, metodo === 'efectivo' ? pago : undefined)
     } finally {
@@ -276,7 +276,7 @@ function Cobrar({ total, clientes, onCerrar, onConfirmar }: { total: number; cli
         <div className="bloque">
           {clientes.length > 0 && (
             <Campo label="¿A quién le fías?">
-              <select value={clienteId ?? ''} onChange={(e) => setClienteId(e.target.value ? Number(e.target.value) : undefined)}>
+              <select value={clienteId ?? ''} onChange={(e) => setClienteId(e.target.value || undefined)}>
                 <option value="">— Elegir —</option>
                 {clientes.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
               </select>

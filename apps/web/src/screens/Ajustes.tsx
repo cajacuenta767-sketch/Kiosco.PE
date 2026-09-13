@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, setConfig } from '../db/db'
-import { borrarTodo, exportarBackup, importarBackup } from '../lib/acciones'
+import { borrarTodo, exportarBackup, guardarNombreBodega, importarBackup } from '../lib/acciones'
+import { Nube } from './Nube'
 import { sembrarSiVacio } from '../db/seed'
 import { Campo } from '../components/ui'
 
@@ -19,7 +20,7 @@ export function Ajustes({ avisar }: { avisar: (m: string) => void }) {
   useEffect(() => setNombre(nombreGuardado), [nombreGuardado])
 
   async function guardarNombre() {
-    await setConfig('nombreBodega', nombre.trim())
+    await guardarNombreBodega(nombre)
     avisar('Nombre guardado')
   }
 
@@ -60,6 +61,8 @@ export function Ajustes({ avisar }: { avisar: (m: string) => void }) {
           <button className="btn-primario" onClick={guardarNombre}>Guardar</button>
         </div>
       </Campo>
+
+      <Nube avisar={avisar} nombreBodega={nombreGuardado} />
 
       <h3 className="subtitulo">Apariencia</h3>
       <div className="chips">

@@ -1,0 +1,27 @@
+# Despliegue en Fly.io: una máquina pequeña sirve la PWA y la API; los datos viven en un volumen (PGlite).
+# Para usar Postgres administrado, define DATABASE_URL como secreto y el volumen deja de ser necesario.
+app = "kiosco-pe"
+primary_region = "gru"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "3000"
+  PGLITE_DIR = "/app/data/kiosco"
+  SERVIR_WEB = "true"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[mounts]]
+  source = "kiosco_datos"
+  destination = "/app/data"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

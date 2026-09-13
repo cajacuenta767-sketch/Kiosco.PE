@@ -30,12 +30,15 @@ Mejoras que casi seguro saldrán de ahí y ya están pensadas:
 - **Precios múltiples:** unidad y paquete (una Inca Kola a S/ 3, el six-pack a S/ 16).
 - **Modo oscuro** para bodegas que atienden de noche.
 
-## Fase 2 · Lo que hace que se quede (1 a 2 meses)
+## Fase 2 · Lo que hace que se quede (1 a 2 meses) — nube y multi-celular listos ✅
+
+Ya implementado en v0.3: respaldo en la nube con cuenta sin contraseña, segundo celular vinculado con un código de
+6 dígitos, sincronización automática con el stock reconstruido desde los movimientos, y despliegue en un solo contenedor.
+Probado con dos celulares vendiendo, fiando y anulando sobre la misma bodega.
 
 - **Escáner de código de barras con la cámara** (BarcodeDetector API / ZXing). Sin lector externo.
 - **Catálogo maestro peruano:** los 2 000 productos más vendidos con código de barras y precio sugerido.
   Escaneas la Inca Kola y ya está creada. Esto convierte la carga inicial de 2 horas en 10 minutos.
-- **Respaldo automático en la nube** (opcional, con cuenta). El respaldo manual queda para quien no quiera cuenta.
 - **Alertas útiles:** "Mañana es lunes y te quedan 4 Pilsen" según la rotación de la semana pasada.
 - **Sugerencia de pedido:** lista de lo que hay que reponer, calculada con ventas de los últimos 14 días, lista para enviar
   al proveedor por WhatsApp.
