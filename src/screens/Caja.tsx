@@ -1,0 +1,181 @@
+import { useMemo, useState } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
+import { db, type Venta } from '../db/db'
+import { METODOS, resumirVentas } from '../lib/acciones'
+import { aDia, diaLabel, fechaLarga, hora, hoyISO, redondear, soles } from '../lib/format'
+import { Campo, Modal, Vacio } from '../components/ui'
+
+export function Caja({ avisar }: { avisar: (m: string) => void }) {
+  const hoy = hoyISO()
+  const [dia, setDia] = useState(hoy)
+  const ventasDia = useLiveQuery(() => db.ventas.where('dia').equals(dia).reverse().sortBy('fecha'), [dia]) ?? []
+  const cierre = useLiveQuery(() => db.cierres.where('dia').equals(dia).first(), [dia])
+  const ultimos7 = useMemo(() => {
+    const dias: string[] = []
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date()
+      d.setDate(d.getDate() - i)
+      dias.push(aDia(d))
+    }
+    return dias
+  }, [])
+  const semana = useLiveQuery(() => db.ventas.where('dia').between(ultimos7[0], ultimos7[6], true, true).toArray(), [ultimos7]) ?? []
+  const [cerrando, setCerrando] = useState(false)
+  const [detalle, setDetalle] = useState<Venta | null>(null)
+
+  const r = resumirVentas(ventasDia, dia)
+  const porDia = ultimos7.map((d) => ({ dia: d, total: redondear(semana.filter((v) => v.dia === d).reduce((s, v) => s + v.total, 0)) }))
+  const maxDia = Math.max(...porDia.map((p) => p.total), 1)
+  const totalSemana = redondear(porDia.reduce((s, p) => s + p.total, 0))
+  const gananciaSemana = redondear(semana.reduce((s, v) => s + v.total - v.costoTotal, 0))
+
+  async function anular(v: Venta) {
+    if (!confirm(`¿Anular la venta de ${soles(v.total)}? El stock vuelve a su lugar.`)) return
+    await db.transaction('rw', [db.ventas, db.productos, db.movimientosStock, db.movimientosFiado], async () => {
+      for (const i of v.items) {
+        const p = await db.productos.get(i.productoId)
+        if (p) await db.productos.update(p.id!, { stock: redondear(p.stock + i.cantidad) })
+        await db.movimientosStock.add({ productoId: i.productoId, fecha: new Date().toISOString(), tipo: 'ajuste', cantidad: i.cantidad, nota: `Anulación venta #${v.id}` })
+      }
+      if (v.metodoPago === 'fiado') await db.movimientosFiado.where('ventaId').equals(v.id!).delete()
+      await db.ventas.delete(v.id!)
+    })
+    setDetalle(null)
+    avisar('Venta anulada')
+  }
+
+  return (
+    <div className="pantalla">
+      <div className="selector-dia">
+        <button className="btn-mini" onClick={() => setDia(mover(dia, -1))}>‹</button>
+        <div className="selector-dia-titulo">
+          <strong>{dia === hoy ? 'Hoy' : fechaLarga(dia)}</strong>
+          {dia === hoy && <span className="item-sub">{fechaLarga(dia)}</span>}
+        </div>
+        <button className="btn-mini" disabled={dia >= hoy} onClick={() => setDia(mover(dia, 1))}>›</button>
+      </div>
+
+      <div className="hero-cifra">
+        <span>Vendiste</span>
+        <strong>{soles(r.totalVentas)}</strong>
+        <span className="hero-sub">
+          Ganancia <b className="texto-ok">{soles(r.ganancia)}</b> · {r.numVentas} {r.numVentas === 1 ? 'venta' : 'ventas'}
+        </span>
+      </div>
+
+      <div className="metodos-resumen">
+        {METODOS.map((m) => (
+          <div key={m.id} className={'mr' + (r.porMetodo[m.id] > 0 ? '' : ' apagado')}>
+            <span>{m.icono} {m.label}</span>
+            <strong>{soles(r.porMetodo[m.id])}</strong>
+          </div>
+        ))}
+      </div>
+
+      {cierre ? (
+        <div className={'cierre-hecho ' + (cierre.diferencia === 0 ? 'ok' : cierre.diferencia < 0 ? 'peligro' : 'alerta')}>
+          <strong>Caja cerrada</strong>
+          <span>Contado {soles(cierre.efectivoContado)} · Esperado {soles(cierre.efectivoEsperado)} · {cierre.diferencia === 0 ? 'Cuadró perfecto ✓' : cierre.diferencia < 0 ? `Faltan ${soles(-cierre.diferencia)}` : `Sobran ${soles(cierre.diferencia)}`}</span>
+        </div>
+      ) : (
+        dia === hoy && <button className="btn-secundario ancho" onClick={() => setCerrando(true)}>🔒 Cerrar caja de hoy</button>
+      )}
+
+      <h3 className="subtitulo">Últimos 7 días · {soles(totalSemana)} vendido · {soles(gananciaSemana)} ganado</h3>
+      <div className="barras">
+        {porDia.map((p) => (
+          <button key={p.dia} className={'barra' + (p.dia === dia ? ' activa' : '')} onClick={() => setDia(p.dia)} title={soles(p.total)}>
+            <span className="barra-valor">{p.total > 0 ? Math.round(p.total) : ''}</span>
+            <span className="barra-relleno" style={{ height: `${Math.max(4, (p.total / maxDia) * 100)}%` }} />
+            <span className="barra-label">{diaLabel(p.dia)}</span>
+          </button>
+        ))}
+      </div>
+
+      {r.topProductos.length > 0 && (
+        <>
+          <h3 className="subtitulo">Lo más vendido</h3>
+          <ul className="lista compacta">
+            {r.topProductos.map((t, i) => (
+              <li key={t.nombre} className="fila-simple">
+                <span>{i + 1}. {t.nombre} <em className="item-sub">× {t.cantidad}</em></span>
+                <strong>{soles(t.total)}</strong>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+
+      <h3 className="subtitulo">Ventas del día</h3>
+      {ventasDia.length === 0 ? (
+        <Vacio icono="🧾" titulo="Sin ventas este día" texto="Las ventas que registres en Vender aparecerán aquí." />
+      ) : (
+        <ul className="lista compacta">
+          {ventasDia.map((v) => (
+            <li key={v.id} className="fila-simple clic" onClick={() => setDetalle(v)}>
+              <span>
+                {hora(v.fecha)} · {METODOS.find((m) => m.id === v.metodoPago)?.icono} {v.items.map((i) => `${i.cantidad} ${i.nombre}`).join(', ')}
+              </span>
+              <strong>{soles(v.total)}</strong>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {cerrando && (
+        <CerrarCaja efectivoVentas={r.porMetodo.efectivo} totalVentas={r.totalVentas} dia={dia} onCerrar={() => setCerrando(false)} onHecho={() => { setCerrando(false); avisar('Caja cerrada') }} />
+      )}
+      {detalle && (
+        <Modal titulo={`Venta · ${hora(detalle.fecha)}`} onCerrar={() => setDetalle(null)}>
+          <ul className="historial">
+            {detalle.items.map((i, k) => (
+              <li key={k}>
+                <div><strong>{i.nombre}</strong><span className="item-sub">{i.cantidad} × {soles(i.precio)}</span></div>
+                <span>{soles(i.cantidad * i.precio)}</span>
+              </li>
+            ))}
+          </ul>
+          <div className="fila-total"><span>Total ({METODOS.find((m) => m.id === detalle.metodoPago)?.label})</span><strong>{soles(detalle.total)}</strong></div>
+          {detalle.vuelto != null && detalle.vuelto > 0 && <p className="nota">Pagó con {soles(detalle.pagoCon!)} · vuelto {soles(detalle.vuelto)}</p>}
+          <button className="btn-peligro ancho" onClick={() => anular(detalle)}>Anular venta</button>
+        </Modal>
+      )}
+    </div>
+  )
+}
+
+function mover(dia: string, n: number): string {
+  const [y, m, d] = dia.split('-').map(Number)
+  const dt = new Date(y, m - 1, d)
+  dt.setDate(dt.getDate() + n)
+  return aDia(dt)
+}
+
+function CerrarCaja({ efectivoVentas, totalVentas, dia, onCerrar, onHecho }: { efectivoVentas: number; totalVentas: number; dia: string; onCerrar: () => void; onHecho: () => void }) {
+  const [inicial, setInicial] = useState('')
+  const [contado, setContado] = useState('')
+  const esperado = redondear((Number(inicial) || 0) + efectivoVentas)
+  const dif = redondear((Number(contado) || 0) - esperado)
+  async function guardar() {
+    await db.cierres.add({ dia, fecha: new Date().toISOString(), montoInicial: Number(inicial) || 0, efectivoEsperado: esperado, efectivoContado: Number(contado) || 0, diferencia: dif, totalVentas })
+    onHecho()
+  }
+  return (
+    <Modal titulo="Cerrar caja" onCerrar={onCerrar}>
+      <Campo label="¿Con cuánto efectivo empezaste el día? (S/)" ayuda="Tu sencillo / caja chica">
+        <input autoFocus type="number" inputMode="decimal" min={0} value={inicial} onChange={(e) => setInicial(e.target.value)} />
+      </Campo>
+      <p className="nota">Ventas en efectivo de hoy: <strong>{soles(efectivoVentas)}</strong>. Deberías tener <strong>{soles(esperado)}</strong> en caja.</p>
+      <Campo label="¿Cuánto efectivo hay realmente? (S/)">
+        <input type="number" inputMode="decimal" min={0} value={contado} onChange={(e) => setContado(e.target.value)} />
+      </Campo>
+      {contado !== '' && (
+        <div className={'vuelto' + (dif < 0 ? ' negativo' : '')}>
+          <span>{dif === 0 ? 'Cuadra perfecto' : dif < 0 ? 'Faltante' : 'Sobrante'}</span>
+          <strong>{dif === 0 ? '✓' : soles(Math.abs(dif))}</strong>
+        </div>
+      )}
+      <button className="btn-primario grande ancho" disabled={contado === ''} onClick={guardar}>Cerrar caja</button>
+    </Modal>
+  )
+}
