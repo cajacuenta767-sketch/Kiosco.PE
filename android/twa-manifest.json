@@ -17,8 +17,8 @@
     "path": "./android.keystore",
     "alias": "kiosco"
   },
-  "appVersionName": "0.6.0",
-  "appVersionCode": 6,
+  "appVersionName": "0.7.0",
+  "appVersionCode": 7,
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://app.kiosco.pe/manifest.webmanifest",

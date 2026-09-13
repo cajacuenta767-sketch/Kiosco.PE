@@ -69,10 +69,12 @@ esperar((await page.evaluate(() => document.documentElement.dataset.letra)) === 
 await shot(page, '56-letra-grande')
 
 // Modo ayudante con PIN
-await page.getByRole('button', { name: /Crear PIN y activar/ }).click()
+await page.getByRole('button', { name: /Crear mi PIN/ }).click()
 await page.getByLabel('PIN', { exact: true }).fill('1234')
 await page.getByLabel('Repite el PIN').fill('1234')
-await page.getByRole('button', { name: /Guardar y entrar/ }).click()
+await page.getByRole('button', { name: 'Guardar PIN' }).click()
+await page.getByText('PIN guardado').waitFor()
+await page.getByRole('button', { name: /Entrar en modo ayudante/ }).click()
 await page.getByText(/Modo ayudante activado/).waitFor()
 await page.getByRole('button', { name: 'Caja', exact: true }).click()
 await page.locator('.hero-cifra').waitFor()

@@ -365,3 +365,8 @@ a { color: var(--primario); }
   .modal { max-height: none; overflow: visible; }
   .lista-precios td { font-size: 14pt; padding: 6pt 4pt; }
 }
+
+/* Bloqueo con PIN */
+.pin-grande { width: 100%; text-align: center; font-size: 34px; letter-spacing: 0.4em; padding: 14px; border: 2px solid var(--borde); border-radius: var(--radio); background: var(--superficie); outline: none; }
+.pin-grande:focus { border-color: var(--primario); box-shadow: 0 0 0 3px var(--primario-suave); }
+.check.apagado { opacity: 0.5; }

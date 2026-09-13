@@ -1,0 +1,101 @@
+import { abrirNavegador, celular, capturas, reportar, esperar } from './comun.mjs'
+const browser = await abrirNavegador()
+const errores = []
+const shot = capturas()
+
+// ── A crea su cuenta en la nube con celular y PIN ──
+const A = await celular(browser, 'A', errores)
+await A.getByRole('button', { name: 'Más', exact: true }).click()
+await A.getByRole('button', { name: /Crear mi cuenta en la nube/ }).click()
+await A.getByPlaceholder(/Doña Carmen/).last().fill('Bodega Carmen')
+await A.getByPlaceholder('9xxxxxxxx').fill('987654321')
+await A.getByLabel('PIN de la cuenta').fill('2468')
+await A.getByLabel('Repite el PIN').fill('1111')
+esperar((await A.getByRole('button', { name: 'Crear cuenta y respaldar ahora' }).isDisabled()), 'no deja crear la cuenta si los PIN no coinciden')
+await A.getByLabel('Repite el PIN').fill('2468')
+await shot(A, '70-crear-cuenta')
+await A.getByRole('button', { name: 'Crear cuenta y respaldar ahora' }).click()
+await A.locator('.estado-nube strong', { hasText: 'Todo respaldado' }).waitFor({ timeout: 20000 })
+// Vende algo para que B tenga qué bajar
+await A.getByRole('button', { name: 'Vender', exact: true }).click()
+await A.getByRole('button', { name: /Inca Kola 500ml/ }).click()
+await A.getByRole('button', { name: /^Cobrar/ }).click()
+await A.getByRole('button', { name: /^Confirmar/ }).click()
+await A.getByText(/Venta registrada/).waitFor()
+await A.getByRole('button', { name: 'Más', exact: true }).click()
+for (let i = 0; i < 4; i++) {
+  await A.getByRole('button', { name: /Sincronizar ahora/ }).click()
+  try { await A.locator('.estado-nube strong', { hasText: 'Todo respaldado' }).waitFor({ timeout: 8000 }); break } catch (e) { if (i === 3) throw e }
+}
+
+// ── B entra desde la bienvenida con número y PIN (celular nuevo, sin código) ──
+const B = await celular(browser, 'B', errores, { conEjemplo: false })
+await B.getByRole('button', { name: /Ya uso Kiosco.PE en otro celular/ }).click()
+await B.getByPlaceholder('9xxxxxxxx').fill('987654321')
+await B.getByLabel('PIN de la cuenta').fill('0000')
+await B.getByRole('button', { name: /Entrar y bajar mis datos/ }).click()
+await B.getByText(/Número o PIN incorrectos/).waitFor()
+esperar(true, 'PIN equivocado no entra')
+await B.getByLabel('PIN de la cuenta').fill('2468')
+await shot(B, '71-entrar-con-pin')
+await B.getByRole('button', { name: /Entrar y bajar mis datos/ }).click()
+await B.getByText('Inca Kola 500ml').waitFor({ timeout: 20000 })
+esperar((await B.locator('.cabecera h1').innerText()) === 'Bodega Carmen', 'B entra a la bodega de A con número y PIN')
+esperar((await B.getByRole('button', { name: /Inca Kola 500ml/ }).locator('.tp-stock').innerText()) === '23 und', 'B baja el stock real (23 tras la venta de A)')
+
+// ── A ve los dos celulares y cierra la sesión de B ──
+await A.getByRole('button', { name: /Mi cuenta y mis celulares/ }).click()
+await A.locator('.historial li').nth(1).waitFor()
+esperar((await A.locator('.estado-nube', { hasText: '987 *** 321' }).count()) === 1, 'la cuenta muestra el número enmascarado')
+esperar((await A.locator('.historial li').count()) === 2, 'dos celulares conectados')
+await shot(A, '72-mis-celulares')
+await A.getByRole('button', { name: 'Cerrar sesión' }).click()
+await A.getByText('Sesión cerrada').waitFor()
+await A.locator('.historial li').nth(1).waitFor({ state: 'detached' })
+esperar((await A.locator('.historial li').count()) === 1, 'queda un solo celular')
+await A.getByRole('button', { name: 'Cerrar', exact: true }).click()
+// B ya no puede sincronizar
+await B.getByRole('button', { name: 'Más', exact: true }).click()
+await B.getByRole('button', { name: /Sincronizar ahora/ }).click()
+await B.locator('.estado-nube strong', { hasText: 'Sin conexión con la nube' }).waitFor({ timeout: 10000 })
+esperar((await B.locator('.estado-nube').innerText()).includes('Token inválido'), 'el celular con sesión cerrada ya no entra a la nube')
+
+// ── Bloqueo con PIN al abrir la app ──
+await A.getByRole('button', { name: /Crear mi PIN/ }).click()
+await A.getByLabel('PIN', { exact: true }).fill('1234')
+await A.getByLabel('Repite el PIN').fill('1234')
+await A.getByRole('button', { name: 'Guardar PIN' }).click()
+await A.getByText('PIN guardado').waitFor()
+await A.getByText('Pedir mi PIN al abrir la app').click({ noWaitAfter: true })
+await A.getByText(/pedirá tu PIN/).waitFor()
+await A.reload()
+await A.getByLabel('PIN', { exact: true }).waitFor()
+await shot(A, '73-bloqueo')
+await A.getByLabel('PIN', { exact: true }).fill('9999')
+await A.getByRole('button', { name: 'Entrar', exact: true }).click()
+await A.getByText('PIN incorrecto').waitFor()
+esperar(true, 'con PIN equivocado la app no abre')
+await A.getByLabel('PIN', { exact: true }).fill('1234')
+await A.getByRole('button', { name: 'Entrar', exact: true }).click()
+await A.getByText('Inca Kola 500ml').waitFor()
+esperar(true, 'con el PIN correcto abre')
+// En modo ayudante, el bloqueo ofrece entrar sin PIN pero como ayudante
+await A.getByRole('button', { name: 'Más', exact: true }).click()
+await A.getByRole('button', { name: /Entrar en modo ayudante/ }).click()
+await A.getByText(/Modo ayudante activado/).waitFor()
+await A.reload()
+await A.getByRole('button', { name: /Entrar como ayudante/ }).click()
+await A.getByRole('button', { name: 'Caja', exact: true }).click()
+await A.locator('.hero-cifra').waitFor()
+esperar(!(await A.locator('.hero-cifra').innerText()).includes('Ganancia'), 'el ayudante entra sin PIN y no ve la ganancia')
+
+// ── Calculadora de vuelto ──
+await A.getByRole('button', { name: 'Vender', exact: true }).click()
+await A.getByRole('button', { name: 'Calcular vuelto' }).click()
+await A.getByLabel(/Cuánto es/).fill('7.5')
+await A.getByRole('button', { name: 'S/ 10', exact: true }).click()
+esperar((await A.locator('.vuelto strong').innerText()) === 'S/ 2.50', 'la calculadora da el vuelto sin registrar venta')
+await shot(A, '74-calculadora')
+
+reportar(errores)
+await browser.close()

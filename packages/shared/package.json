@@ -1,7 +1,7 @@
 {
   "name": "@kiosco/shared",
   "private": true,
-  "version": "0.6.0",
+  "version": "0.7.0",
   "type": "module",
   "description": "Tipos de dominio y lógica pura de Kiosco.PE, compartida entre la app y la API.",
   "exports": {

@@ -46,7 +46,8 @@ const GUIAS: Record<Tab, { titulo: string; pasos: [string, string][] }> = {
     titulo: 'Ajustes',
     pasos: [
       ['🏪', 'Escribe el nombre de tu bodega: sale en los mensajes de WhatsApp.'],
-      ['☁️', 'Activa la nube para que tus datos queden guardados aunque pierdas el celular, y para atender desde dos celulares.'],
+      ['☁️', 'Crea tu cuenta en la nube con tu celular y un PIN: tus datos quedan guardados y, si pierdes el teléfono, entras desde otro con ese número y PIN.'],
+      ['🔐', 'Con "Pedir mi PIN al abrir" nadie entra a tu bodega sin tu PIN, ni tu ayudante.'],
       ['🔤', 'Si la letra se ve chica, elige "Letra grande".'],
       ['📲', 'Sube la captura de tu QR de Yape y Plin: al cobrar, se lo muestras al cliente en grande para que escanee.'],
       ['👩‍👧', 'Con "Modo ayudante" otra persona puede vender sin ver tus ganancias ni cambiar precios.'],

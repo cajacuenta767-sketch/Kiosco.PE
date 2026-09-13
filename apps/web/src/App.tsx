@@ -12,6 +12,8 @@ import { Fiados } from './screens/Fiados'
 import { Caja } from './screens/Caja'
 import { Ajustes } from './screens/Ajustes'
 import { Bienvenida } from './screens/Bienvenida'
+import { Bloqueo } from './screens/Bloqueo'
+import { cambiarModo } from './lib/pin'
 import { hoyISO } from '@kiosco/shared'
 import { deudaDe } from './lib/acciones'
 
@@ -33,6 +35,7 @@ export default function App() {
   const timer = useRef<number | undefined>(undefined)
   const [listo, setListo] = useState(false)
   const [bienvenida, setBienvenida] = useState(false)
+  const [bloqueado, setBloqueado] = useState(false)
 
   useEffect(() => {
     ;(async () => {
@@ -41,6 +44,7 @@ export default function App() {
         if (migrado) await setConfig('bienvenida', '1')
         const hecha = (await getConfig('bienvenida')) === '1' || (await db.productos.count()) > 0
         setBienvenida(!hecha)
+        setBloqueado(hecha && (await getConfig('bloqueo')) === '1' && (await getConfig('pin')) !== '')
       } finally {
         setListo(true)
       }
@@ -84,6 +88,7 @@ export default function App() {
 
   if (!listo) return <div className="cargando">Cargando tu bodega…</div>
   if (bienvenida) return <Bienvenida onListo={() => setBienvenida(false)} />
+  if (bloqueado) return <Bloqueo nombreBodega={nombre ?? ''} modo={modo} onEntrar={async (como) => { await cambiarModo(como); setBloqueado(false) }} />
 
   return (
     <div className="app">

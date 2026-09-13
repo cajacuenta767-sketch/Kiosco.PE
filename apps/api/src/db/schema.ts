@@ -1,12 +1,23 @@
-import { bigserial, boolean, index, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
+import { sql } from 'drizzle-orm'
+import { bigserial, boolean, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
 
-/** Una bodega = una cuenta. Sin correo ni contraseña: se registra con un nombre y recibe un token por dispositivo. */
-export const bodegas = pgTable('bodegas', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  nombre: text('nombre').notNull(),
-  telefono: text('telefono'),
-  creadoEn: timestamp('creado_en', { withTimezone: true }).notNull().defaultNow(),
-})
+/**
+ * Una bodega = una cuenta. Sin correo: se identifica por el celular de la dueña y un PIN.
+ * El PIN se guarda con scrypt; tras 5 intentos fallidos la cuenta se bloquea 15 minutos.
+ */
+export const bodegas = pgTable(
+  'bodegas',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    nombre: text('nombre').notNull(),
+    telefono: text('telefono'),
+    pinHash: text('pin_hash'),
+    intentosFallidos: integer('intentos_fallidos').notNull().default(0),
+    bloqueadoHasta: timestamp('bloqueado_hasta', { withTimezone: true }),
+    creadoEn: timestamp('creado_en', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('bodegas_telefono_idx').on(t.telefono).where(sql`${t.telefono} is not null`)],
+)
 
 /** Cada celular que sincroniza. El token se guarda hasheado. */
 export const dispositivos = pgTable(

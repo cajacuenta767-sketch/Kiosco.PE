@@ -25,6 +25,7 @@ export function Vender({ avisar }: { avisar: (m: string, accion?: AccionToast) =
   const [ventaRapida, setVentaRapida] = useState(false)
   const [escaneando, setEscaneando] = useState(false)
   const [verClientes, setVerClientes] = useState(false)
+  const [calculadora, setCalculadora] = useState(false)
   const [clientePre, setClientePre] = useState<string | undefined>(undefined)
   const medios = useLiveQuery(leerMedios, [])
 
@@ -158,6 +159,7 @@ export function Vender({ avisar }: { avisar: (m: string, accion?: AccionToast) =
         <button className="btn-secundario btn-cuadrado" title="Escanear con la cámara" aria-label="Escanear con la cámara" onClick={() => setEscaneando(true)}>📷</button>
         <button className="btn-secundario btn-cuadrado" title="Venta rápida sin producto" aria-label="Venta rápida" onClick={() => setVentaRapida(true)}>S/</button>
         <button className="btn-secundario btn-cuadrado" title="Lo de siempre de un cliente" aria-label="Clientes" onClick={() => setVerClientes(true)}>👤</button>
+        <button className="btn-secundario btn-cuadrado" title="Calcular vuelto sin registrar venta" aria-label="Calcular vuelto" onClick={() => setCalculadora(true)}>🧮</button>
       </div>
       <div className="chips">
         {categorias.map((c) => (
@@ -244,6 +246,7 @@ export function Vender({ avisar }: { avisar: (m: string, accion?: AccionToast) =
 
       {escaneando && <Escaner onCodigo={alEscanear} onCerrar={() => setEscaneando(false)} />}
 
+      {calculadora && <CalculadoraVuelto onCerrar={() => setCalculadora(false)} />}
       {verClientes && <LoDeSiempre clientes={clientes} onCerrar={() => setVerClientes(false)} onElegir={agregarLoDeSiempre} />}
 
       {cobrando && <Cobrar total={total} clientes={clientes} clienteInicial={clientePre} medios={medios} onCerrar={() => setCobrando(false)} onConfirmar={confirmar} />}
@@ -427,6 +430,38 @@ function LoDeSiempre({ clientes, onCerrar, onElegir }: { clientes: Cliente[]; on
           )
         })}
       </ul>
+    </Modal>
+  )
+}
+
+/** Calcular el vuelto sin anotar nada: para lo que no quiere registrar o para comprobar. */
+function CalculadoraVuelto({ onCerrar }: { onCerrar: () => void }) {
+  const [total, setTotal] = useState('')
+  const [paga, setPaga] = useState('')
+  const t = Number(total) || 0
+  const p = Number(paga) || 0
+  const vuelto = redondear(p - t)
+  const billetes = [5, 10, 20, 50, 100, 200].filter((b) => b >= t && t > 0).slice(0, 4)
+  return (
+    <Modal titulo="Calcular vuelto" onCerrar={onCerrar}>
+      <p className="nota">Solo calcula. No anota la venta.</p>
+      <Campo label="¿Cuánto es? (S/)">
+        <input autoFocus type="number" inputMode="decimal" step="0.1" min={0} placeholder="0.00" value={total} onChange={(e) => setTotal(e.target.value)} />
+      </Campo>
+      <Campo label="¿Con cuánto paga? (S/)">
+        <input type="number" inputMode="decimal" step="0.1" min={0} placeholder="0.00" value={paga} onChange={(e) => setPaga(e.target.value)} />
+      </Campo>
+      {billetes.length > 0 && (
+        <div className="chips">
+          {billetes.map((b) => <button key={b} className={'chip' + (p === b ? ' activo' : '')} onClick={() => setPaga(String(b))}>S/ {b}</button>)}
+        </div>
+      )}
+      {t > 0 && p > 0 && (
+        <div className={'vuelto' + (vuelto < 0 ? ' negativo' : '')}>
+          <span>{vuelto < 0 ? 'Falta' : 'Vuelto'}</span>
+          <strong>{soles(Math.abs(vuelto))}</strong>
+        </div>
+      )}
     </Modal>
   )
 }

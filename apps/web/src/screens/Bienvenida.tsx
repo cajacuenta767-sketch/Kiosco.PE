@@ -2,13 +2,16 @@ import { useState } from 'react'
 import { setConfig } from '../db/db'
 import { sembrarDemo, sembrarSiVacio } from '../db/seed'
 import { guardarNombreBodega } from '../lib/acciones'
-import { urlPorDefecto, vincularConCodigo } from '../sync/motor'
+import { iniciarSesionNube, urlPorDefecto, vincularConCodigo } from '../sync/motor'
 import { Campo } from '../components/ui'
 
 /** Primer arranque: nombre de la bodega y cómo empezar. Se muestra una sola vez. */
 export function Bienvenida({ onListo }: { onListo: () => void }) {
   const [nombre, setNombre] = useState('')
   const [modo, setModo] = useState<'inicio' | 'vincular'>('inicio')
+  const [via, setVia] = useState<'pin' | 'codigo'>('pin')
+  const [telefono, setTelefono] = useState('')
+  const [pin, setPin] = useState('')
   const [codigo, setCodigo] = useState('')
   const [servidor, setServidor] = useState(urlPorDefecto())
   const [avanzado, setAvanzado] = useState(false)
@@ -32,7 +35,9 @@ export function Bienvenida({ onListo }: { onListo: () => void }) {
     setOcupado(true)
     setError('')
     try {
-      await vincularConCodigo(servidor.trim().replace(/\/$/, ''), codigo, 'Segundo celular')
+      const base = servidor.trim().replace(/\/$/, '')
+      if (via === 'pin') await iniciarSesionNube(base, telefono, pin, 'Celular nuevo')
+      else await vincularConCodigo(base, codigo, 'Segundo celular')
       await setConfig('bienvenida', '1')
       onListo()
     } catch (e) {
@@ -63,10 +68,28 @@ export function Bienvenida({ onListo }: { onListo: () => void }) {
         </div>
       ) : (
         <div className="bienvenida-cuerpo">
-          <p className="nota">En el celular que ya tiene la bodega, entra a <strong>Más → Sumar otro celular</strong> y escribe aquí el código.</p>
-          <Campo label="Código de 6 dígitos">
-            <input autoFocus type="text" inputMode="numeric" maxLength={6} placeholder="000000" value={codigo} onChange={(e) => setCodigo(e.target.value.replace(/\D/g, ''))} />
-          </Campo>
+          <div className="chips">
+            <button className={'chip' + (via === 'pin' ? ' activo' : '')} onClick={() => setVia('pin')}>🔑 Con mi número y PIN</button>
+            <button className={'chip' + (via === 'codigo' ? ' activo' : '')} onClick={() => setVia('codigo')}>📱 Con código del otro celular</button>
+          </div>
+          {via === 'pin' ? (
+            <>
+              <p className="nota">El número y el PIN de tu cuenta. Sirve aunque hayas perdido el otro celular.</p>
+              <Campo label="Tu celular">
+                <input autoFocus type="tel" inputMode="numeric" maxLength={9} placeholder="9xxxxxxxx" value={telefono} onChange={(e) => setTelefono(e.target.value.replace(/\D/g, ''))} />
+              </Campo>
+              <Campo label="PIN de la cuenta">
+                <input type="password" inputMode="numeric" maxLength={6} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} />
+              </Campo>
+            </>
+          ) : (
+            <>
+              <p className="nota">En el celular que ya tiene la bodega, entra a <strong>Más → Sumar otro celular</strong> y escribe aquí el código.</p>
+              <Campo label="Código de 6 dígitos">
+                <input autoFocus type="text" inputMode="numeric" maxLength={6} placeholder="000000" value={codigo} onChange={(e) => setCodigo(e.target.value.replace(/\D/g, ''))} />
+              </Campo>
+            </>
+          )}
           {avanzado ? (
             <Campo label="Dirección del servidor">
               <input type="url" value={servidor} onChange={(e) => setServidor(e.target.value)} />
@@ -75,7 +98,7 @@ export function Bienvenida({ onListo }: { onListo: () => void }) {
             <button className="btn-enlace" onClick={() => setAvanzado(true)}>Opciones avanzadas</button>
           )}
           {error && <p className="texto-peligro">{error}</p>}
-          <button className="btn-primario grande ancho" disabled={!/^\d{6}$/.test(codigo) || ocupado} onClick={vincular}>{ocupado ? 'Vinculando…' : 'Vincular y bajar mis datos'}</button>
+          <button className="btn-primario grande ancho" disabled={(via === 'pin' ? !(/^\d{9}$/.test(telefono) && /^\d{4,6}$/.test(pin)) : !/^\d{6}$/.test(codigo)) || ocupado} onClick={vincular}>{ocupado ? 'Entrando…' : 'Entrar y bajar mis datos'}</button>
           <button className="btn-enlace" onClick={() => setModo('inicio')}>Volver</button>
         </div>
       )}

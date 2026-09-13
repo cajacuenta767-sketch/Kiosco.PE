@@ -13,7 +13,8 @@ export async function celular(browser, nombre, errores, { conEjemplo = true } = 
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, locale: 'es-PE' })
   const page = await ctx.newPage()
   page.on('pageerror', (e) => errores.push(`${nombre} pageerror: ${e.message}`))
-  page.on('console', (m) => { if (m.type() === 'error') errores.push(`${nombre} console: ${m.text()}`) })
+  // Las respuestas 4xx esperadas (PIN equivocado, sesión cerrada) salen en consola como "Failed to load resource": no son errores de la app.
+  page.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) errores.push(`${nombre} console: ${m.text()}`) })
   page.on('dialog', (d) => d.accept())
   await page.goto(BASE + '/')
   await page.getByText('¿Cómo se llama tu bodega?').waitFor()

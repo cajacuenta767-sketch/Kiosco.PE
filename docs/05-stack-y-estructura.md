@@ -56,8 +56,9 @@ Principios:
    (`GET /v1/sync/pull?desde=N`). Es idempotente: reenviar un lote no duplica nada.
 4. **Conflictos:** última escritura gana por registro, salvo el stock, que se reconstruye reaplicando `movimientosStock`
    (por eso son inmutables). Dos celulares vendiendo a la vez nunca "pisan" el stock del otro.
-5. **Cuenta sin contraseña.** Una bodega se registra con su nombre (`POST /v1/bodegas`) y recibe un token de dispositivo.
-   Añadir otro celular es escanear un QR. El teléfono con OTP por WhatsApp llega en la Fase 2 para recuperar la cuenta.
+5. **Cuenta = celular + PIN.** Una bodega se registra con su nombre, el celular de la dueña y un PIN (`POST /v1/bodegas`)
+   y recibe un token de dispositivo. Otro celular entra con código de 6 dígitos o con número y PIN (`POST /v1/sesion`).
+   El PIN se guarda con scrypt; 5 fallos bloquean la cuenta 15 minutos. Cada celular es una sesión que se puede cerrar.
 
 ## Estructura de carpetas
 
@@ -88,7 +89,7 @@ Kiosco.PE/
 │   │       ├── sync/motor.ts    Motor de sincronización: activar nube, vincular, subir, bajar, aplicar.
 │   │       ├── lib/acciones.ts  Transacciones: registrar venta, ingresar stock, abonar, gastos, respaldo.
 │   │       ├── components/      Modal, Campo, Toast, Escáner de códigos con cámara.
-│   │       ├── screens/         Bienvenida · Vender · Stock · Fiados · Caja · Ajustes · Nube.
+│   │       ├── screens/         Bienvenida · Bloqueo · Vender · Stock · Fiados · Caja · Ajustes · Nube.
 │   │       ├── App.tsx          Pestañas, cabecera, tema.
 │   │       └── styles.css       Sistema de diseño (variables, modo oscuro, móvil primero).
 │   │
@@ -177,6 +178,13 @@ POST /api/v1/dispositivos/codigo      Authorization: Bearer   → { codigo: "274
 POST /api/v1/dispositivos/vincular    { codigo, dispositivo? } → 201 { bodegaId, dispositivoId, token, nombre }
 GET  /api/v1/bodegas/actual           Authorization: Bearer   → { nombre, dispositivos: [...] }
 DELETE /api/v1/dispositivos/actual    Authorization: Bearer   → { ok }
+```
+
+```
+POST /api/v1/sesion                    { telefono, pin, dispositivo? } → 201 { bodegaId, dispositivoId, token, nombre }
+                                        401 { error, intentosRestantes } · 423 bloqueada 15 min
+PUT  /api/v1/bodegas/actual/acceso     Authorization: Bearer · { telefono, pin } → cambia el acceso
+DELETE /api/v1/dispositivos/:id        Authorization: Bearer · cierra la sesión de otro celular de la bodega
 ```
 
 Todas las rutas van bajo el prefijo `/api` para convivir con la PWA en el mismo origen.

@@ -18,6 +18,7 @@ export function Ajustes({ avisar, ayudante = false }: { avisar: (m: string) => v
   const letra = useLiveQuery(() => db.config.get('letra'), [])?.value ?? 'normal'
   const sonido = useLiveQuery(() => db.config.get('sonido'), [])?.value ?? '1'
   const tienePin = useLiveQuery(hayPin, []) ?? false
+  const bloqueo = useLiveQuery(() => db.config.get('bloqueo'), [])?.value === '1'
   const [modalPin, setModalPin] = useState<'crear' | 'salir' | null>(null)
   const [nombre, setNombre] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
@@ -92,17 +93,16 @@ export function Ajustes({ avisar, ayudante = false }: { avisar: (m: string) => v
 
       <Nube avisar={avisar} nombreBodega={nombreGuardado} />
 
-      <h3 className="subtitulo">Modo ayudante</h3>
-      <p className="nota">Para que tu hijo, sobrina o ayudante atienda sin ver tus ganancias ni cambiar precios. Se sale con tu PIN de 4 números.</p>
+      <h3 className="subtitulo">Tu PIN y quién entra</h3>
+      <p className="nota">Un PIN de 4 números que solo tú sepas. Sirve para pedirlo al abrir la app y para el modo ayudante.</p>
       <div className="acciones-col">
-        {tienePin ? (
-          <>
-            <button className="btn-primario ancho" onClick={async () => { await cambiarModo('ayudante'); avisar('Modo ayudante activado') }}>👩‍👧 Entrar en modo ayudante</button>
-            <button className="btn-secundario ancho" onClick={() => setModalPin('crear')}>Cambiar PIN</button>
-          </>
-        ) : (
-          <button className="btn-secundario ancho" onClick={() => setModalPin('crear')}>🔐 Crear PIN y activar</button>
-        )}
+        <button className="btn-secundario ancho" onClick={() => setModalPin('crear')}>{tienePin ? '🔐 Cambiar PIN' : '🔐 Crear mi PIN'}</button>
+        <label className={'check' + (tienePin ? '' : ' apagado')}>
+          <input type="checkbox" disabled={!tienePin} checked={bloqueo} onChange={(e) => { setConfig('bloqueo', e.target.checked ? '1' : '0'); avisar(e.target.checked ? 'Al abrir la app pedirá tu PIN' : 'La app abrirá sin PIN') }} />
+          <span>Pedir mi PIN al abrir la app</span>
+        </label>
+        <button className="btn-primario ancho" disabled={!tienePin} onClick={async () => { await cambiarModo('ayudante'); avisar('Modo ayudante activado') }}>👩‍👧 Entrar en modo ayudante</button>
+        <p className="nota">En modo ayudante, tu hijo o sobrina vende y cobra fiados, pero no ve tus ganancias ni cambia precios. Se sale con tu PIN.</p>
       </div>
 
       <h3 className="subtitulo">Apariencia</h3>
@@ -138,8 +138,8 @@ export function Ajustes({ avisar, ayudante = false }: { avisar: (m: string) => v
       <h3 className="subtitulo">Consejo</h3>
       <p className="nota">Descarga un respaldo cada semana y guárdalo en tu WhatsApp o Google Drive. Si cambias de celular, restáuralo y sigues donde te quedaste.</p>
 
-      <p className="pie">Kiosco.PE v0.6 · Hecho para las bodegas del Perú 🇵🇪</p>
-      {modalPin === 'crear' && <CrearPin onCerrar={() => setModalPin(null)} onOk={async () => { setModalPin(null); await cambiarModo('ayudante'); avisar('PIN guardado · Modo ayudante activado') }} />}
+      <p className="pie">Kiosco.PE v0.7 · Hecho para las bodegas del Perú 🇵🇪</p>
+      {modalPin === 'crear' && <CrearPin onCerrar={() => setModalPin(null)} onOk={() => { setModalPin(null); avisar('PIN guardado') }} />}
     </div>
   )
 }
@@ -156,11 +156,11 @@ function CrearPin({ onCerrar, onOk }: { onCerrar: () => void; onOk: () => void }
   }
   return (
     <Modal titulo="Tu PIN de dueña" onCerrar={onCerrar}>
-      <p className="nota">Cuatro números que solo tú sepas. Con él vuelves al modo dueña.</p>
+      <p className="nota">Cuatro números que solo tú sepas. Con él entras a la app y vuelves al modo dueña.</p>
       <Campo label="PIN"><input autoFocus type="password" inputMode="numeric" maxLength={4} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} /></Campo>
       <Campo label="Repite el PIN"><input type="password" inputMode="numeric" maxLength={4} value={pin2} onChange={(e) => setPin2(e.target.value.replace(/\D/g, ''))} /></Campo>
       {error && <p className="texto-peligro">{error}</p>}
-      <button className="btn-primario grande ancho" disabled={pin.length < 4 || pin2.length < 4} onClick={guardar}>Guardar y entrar en modo ayudante</button>
+      <button className="btn-primario grande ancho" disabled={pin.length < 4 || pin2.length < 4} onClick={guardar}>Guardar PIN</button>
     </Modal>
   )
 }

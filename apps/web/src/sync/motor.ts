@@ -79,9 +79,16 @@ export async function activarNube(url: string, nombreBodega: string, nombreDispo
   await sincronizar()
 }
 
-/** Segundo celular: canjea el código del primero. Si solo tenía el catálogo de ejemplo, lo descarta para no duplicar. */
-export async function vincularConCodigo(url: string, codigo: string, nombreDispositivo?: string) {
-  const s = await pedir<RespuestaRegistro>('/v1/dispositivos/vincular', { metodo: 'POST', url, cuerpo: { codigo, dispositivo: nombreDispositivo }, token: '' })
+/** Primer celular: crea la cuenta con número y PIN para poder entrar desde cualquier otro celular. */
+export async function activarNubeConAcceso(url: string, nombreBodega: string, telefono: string, pin: string, nombreDispositivo?: string) {
+  const s = await pedir<RespuestaRegistro>('/v1/bodegas', { metodo: 'POST', url, cuerpo: { nombre: nombreBodega, telefono, pin, dispositivo: nombreDispositivo }, token: '' })
+  await guardarSesion(url, s)
+  await encolarTodo()
+  await sincronizar()
+}
+
+/** Este celular entra a una bodega que ya existe en la nube. Si solo tenía el catálogo de ejemplo, lo descarta para no duplicar. */
+async function entrarABodega(url: string, s: RespuestaRegistro) {
   const soloEjemplo = (await getConfig('catalogoEjemplo')) === '1' && (await db.ventas.count()) === 0
   await db.transaction('rw', db.tables, async () => {
     if (soloEjemplo) {
@@ -94,6 +101,38 @@ export async function vincularConCodigo(url: string, codigo: string, nombreDispo
   await guardarSesion(url, s)
   if (!soloEjemplo) await encolarTodo()
   await sincronizar()
+}
+
+/** Segundo celular: canjea el código del primero. */
+export async function vincularConCodigo(url: string, codigo: string, nombreDispositivo?: string) {
+  const s = await pedir<RespuestaRegistro>('/v1/dispositivos/vincular', { metodo: 'POST', url, cuerpo: { codigo, dispositivo: nombreDispositivo }, token: '' })
+  await entrarABodega(url, s)
+}
+
+/** Cualquier celular: entra con el número de la bodega y su PIN (por ejemplo, tras perder el celular). */
+export async function iniciarSesionNube(url: string, telefono: string, pin: string, nombreDispositivo?: string) {
+  const s = await pedir<RespuestaRegistro>('/v1/sesion', { metodo: 'POST', url, cuerpo: { telefono, pin, dispositivo: nombreDispositivo }, token: '' })
+  await entrarABodega(url, s)
+}
+
+export interface CuentaNube {
+  nombre?: string
+  telefono: string | null
+  tieneAcceso: boolean
+  dispositivoId: string
+  dispositivos: { id: string; nombre: string | null; esteDispositivo: boolean; ultimoSync: string | null; creadoEn: string }[]
+}
+
+export async function leerCuenta(): Promise<CuentaNube> {
+  return pedir('/v1/bodegas/actual')
+}
+
+export async function configurarAcceso(telefono: string, pin: string) {
+  await pedir('/v1/bodegas/actual/acceso', { metodo: 'PUT', cuerpo: { telefono, pin } })
+}
+
+export async function cerrarSesionDispositivo(id: string) {
+  await pedir(`/v1/dispositivos/${id}`, { metodo: 'DELETE' })
 }
 
 export async function generarCodigoVinculo(): Promise<{ codigo: string; minutos: number }> {

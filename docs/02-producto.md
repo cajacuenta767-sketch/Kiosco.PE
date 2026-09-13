@@ -64,8 +64,13 @@
 ### 📲 Cobros con Yape y Plin (dentro de Más)
 - Número, nombre que aparece y captura del QR de cada uno. Se comparte con el otro celular por la nube.
 
+### 🔐 Acceso (dentro de Más)
+- **PIN de dueña** de 4 números. Con "Pedir mi PIN al abrir la app" nadie entra sin él; si el modo ayudante está activo, el ayudante entra sin PIN pero solo a vender, ver stock y cobrar fiados.
+- **Cuenta en la nube = celular + PIN.** Sin correo. Entra desde cualquier celular con esos dos datos; tras 5 intentos fallidos la cuenta se bloquea 15 minutos.
+- **Mis celulares:** lista de celulares conectados y "Cerrar sesión" para el que se perdió. Cambiar número o PIN de la cuenta.
+
 ### ☁️ Nube (dentro de Más)
-- Activar respaldo con el nombre de la bodega: sin contraseña, este celular queda como el primero.
+- Crear la cuenta con el nombre de la bodega, el celular y un PIN: este celular queda como el primero.
 - Sumar otro celular con un código de 6 dígitos que vale 10 minutos. Los dos venden sobre el mismo stock.
 - Estado siempre visible: todo respaldado, cambios por subir, o sin conexión (y sigue funcionando).
 
@@ -86,7 +91,7 @@
 
 ## Lo que deliberadamente NO hace (todavía)
 
-- No pide correo ni contraseña, ni siquiera para la nube.
+- No pide correo ni contraseña. El acceso es el celular de la dueña y un PIN de 4 a 6 números, como en Yape.
 - No emite boletas electrónicas. Primero cobrar bien; SUNAT viene en la Fase 3.
 - No tiene múltiples usuarios ni permisos. Es la bodega de una persona.
 - No tiene informes en PDF ni exportación a Excel. El bodeguero quiere ver la cifra, no imprimirla.
