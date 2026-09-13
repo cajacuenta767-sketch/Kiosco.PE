@@ -21,6 +21,8 @@ export interface Producto extends Registro {
   unidad: Unidad
   activo: boolean
   creadoEn: string
+  emoji?: string // ícono elegido a mano
+  imagen?: string // foto pequeña (data URL, ~5 KB)
 }
 
 export interface ItemVenta {

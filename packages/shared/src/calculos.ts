@@ -96,12 +96,18 @@ export function textoComprobante(v: Venta, nombreBodega: string, etiquetaMetodo:
   return `${nombreBodega || 'Kiosco.PE'}\n${fecha}\n\n${filas}\n\nTOTAL S/ ${v.total.toFixed(2)} (${etiquetaMetodo})${vuelto}\n\n¡Gracias por su compra!`
 }
 
+/** Los pagos a proveedores reponen mercadería: ya están descontados como costo en cada venta. No bajan la ganancia, pero sí salen de la caja. */
+export function gastosOperativos(gastos: { monto: number; categoria?: string }[]): number {
+  return redondear(gastos.filter((g) => g.categoria !== 'proveedor').reduce((s, g) => s + g.monto, 0))
+}
+
 export interface ResumenMes {
   mes: string // YYYY-MM
   vendido: number
   gananciaBruta: number
-  gastos: number
-  gananciaNeta: number
+  gastos: number // todo lo que salió, incluidos proveedores
+  pagosProveedor: number
+  gananciaNeta: number // bruta menos gastos que no son mercadería
   numVentas: number
   diasConVenta: number
   promedioDiario: number
@@ -111,7 +117,7 @@ export interface ResumenMes {
   topProductos: { nombre: string; cantidad: number; total: number }[]
 }
 
-export function resumirMes(mes: string, ventas: Venta[], gastos: { monto: number; dia: string }[], movsFiado: { tipo: 'fiado' | 'abono'; monto: number; fecha: string }[]): ResumenMes {
+export function resumirMes(mes: string, ventas: Venta[], gastos: { monto: number; dia: string; categoria?: string }[], movsFiado: { tipo: 'fiado' | 'abono'; monto: number; fecha: string }[]): ResumenMes {
   const vm = ventas.filter((v) => v.dia.startsWith(mes))
   const gm = gastos.filter((g) => g.dia.startsWith(mes))
   const fm = movsFiado.filter((m) => m.fecha.startsWith(mes))
@@ -131,13 +137,15 @@ export function resumirMes(mes: string, ventas: Venta[], gastos: { monto: number
     }
   }
   const totalGastos = gm.reduce((s, g) => s + g.monto, 0)
+  const operativos = gastosOperativos(gm)
   const mejor = [...porDia.entries()].sort((a, b) => b[1] - a[1])[0]
   return {
     mes,
     vendido: redondear(vendido),
     gananciaBruta: redondear(gananciaBruta),
     gastos: redondear(totalGastos),
-    gananciaNeta: redondear(gananciaBruta - totalGastos),
+    pagosProveedor: redondear(totalGastos - operativos),
+    gananciaNeta: redondear(gananciaBruta - operativos),
     numVentas: vm.length,
     diasConVenta: porDia.size,
     promedioDiario: porDia.size ? redondear(vendido / porDia.size) : 0,

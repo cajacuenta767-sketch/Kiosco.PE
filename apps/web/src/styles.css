@@ -163,7 +163,7 @@ a { color: var(--primario); }
 .btn-icono { width: 36px; height: 36px; border-radius: 999px; background: var(--fondo); font-size: 16px; }
 .btn-enlace { color: var(--primario); font-weight: 600; padding: 8px 0; text-decoration: underline; }
 .btn-whatsapp { display: block; text-align: center; background: #25d366; color: #fff; text-decoration: none; padding: 12px; border-radius: var(--radio); font-weight: 700; margin-top: 8px; }
-.ancho { width: 100%; }
+.ancho { width: 100%; white-space: normal; line-height: 1.25; }
 .acciones { display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px; }
 .acciones > * { flex: 1; }
 .acciones-col { display: flex; flex-direction: column; gap: 8px; }
@@ -288,3 +288,37 @@ a { color: var(--primario); }
 .bienvenida-cuerpo { display: flex; flex-direction: column; gap: 12px; }
 .bienvenida .btn-enlace { text-align: center; }
 .centrado { text-align: center; }
+
+/* Íconos e imágenes de producto */
+.icono-producto { display: inline-grid; place-items: center; border-radius: 10px; background: var(--fondo); object-fit: cover; flex-shrink: 0; line-height: 1; }
+.tarjeta-producto .icono-producto { margin-bottom: 2px; }
+.imagen-producto { display: flex; align-items: center; gap: 12px; }
+.imagen-producto .icono-producto { width: 72px; height: 72px; border-radius: 14px; }
+.imagen-acciones { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.imagen-acciones .btn-secundario { padding: 10px 12px; font-size: 14px; }
+.emojis { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
+.emoji-opcion { font-size: 24px; padding: 8px 0; border-radius: 10px; background: var(--superficie); border: 2px solid var(--borde); }
+.emoji-opcion.activo { border-color: var(--primario); background: var(--primario-suave); }
+
+/* Guía */
+.guia { display: flex; flex-direction: column; gap: 14px; padding: 4px 0 8px; }
+.guia li { display: flex; gap: 12px; align-items: flex-start; font-size: 16px; line-height: 1.45; }
+.guia-icono { font-size: 28px; line-height: 1; flex-shrink: 0; width: 36px; text-align: center; }
+.cab-ayuda { width: 32px; height: 32px; border-radius: 999px; background: rgba(255, 255, 255, 0.16); color: #fff; font-weight: 800; font-size: 16px; }
+
+/* Toast con acción */
+.toast { display: flex; align-items: center; gap: 12px; }
+.toast-accion { color: var(--acento); font-weight: 800; text-transform: uppercase; font-size: 13px; letter-spacing: 0.04em; padding: 4px 6px; }
+
+/* Letra grande */
+[data-letra='grande'] { font-size: 19px; }
+[data-letra='grande'] body { font-size: 19px; }
+[data-letra='grande'] .grilla-productos { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+[data-letra='grande'] .tp-nombre { font-size: 17px; }
+[data-letra='grande'] .tp-precio { font-size: 21px; }
+[data-letra='grande'] .tp-stock, [data-letra='grande'] .item-sub, [data-letra='grande'] .nota, [data-letra='grande'] .kpi-label { font-size: 15px; }
+[data-letra='grande'] .btn-primario, [data-letra='grande'] .btn-secundario { font-size: 18px; padding: 14px 20px; }
+[data-letra='grande'] .chip { font-size: 16px; padding: 10px 16px; }
+[data-letra='grande'] .campo input, [data-letra='grande'] .campo select { font-size: 19px; }
+[data-letra='grande'] .nav-label { font-size: 13px; }
+[data-letra='grande'] .hero-cifra strong { font-size: 46px; }

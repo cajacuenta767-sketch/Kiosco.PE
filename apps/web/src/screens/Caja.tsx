@@ -2,10 +2,10 @@ import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, type CategoriaGasto, type Gasto, type Venta } from '../db/db'
 import { CATEGORIAS_GASTO, METODOS, anularVenta, cerrarCaja, eliminarGasto, registrarGasto, resumirVentas } from '../lib/acciones'
-import { aDia, diaLabel, fechaCorta, fechaLarga, hora, hoyISO, mesLabel, redondear, resumirMes, soles, textoComprobante } from '@kiosco/shared'
+import { aDia, diaLabel, fechaCorta, fechaLarga, gastosOperativos, hora, hoyISO, mesLabel, redondear, resumirMes, soles, textoComprobante } from '@kiosco/shared'
 import { Campo, Modal, Vacio } from '../components/ui'
 
-export function Caja({ avisar }: { avisar: (m: string) => void }) {
+export function Caja({ avisar, ayudante = false }: { avisar: (m: string) => void; ayudante?: boolean }) {
   const hoy = hoyISO()
   const [dia, setDia] = useState(hoy)
   const ventasDia = useLiveQuery(() => db.ventas.where('dia').equals(dia).reverse().sortBy('fecha'), [dia]) ?? []
@@ -40,10 +40,10 @@ export function Caja({ avisar }: { avisar: (m: string) => void }) {
   const porDia = ultimos7.map((d) => ({ dia: d, total: redondear(semana.filter((v) => v.dia === d).reduce((s, v) => s + v.total, 0)) }))
   const maxDia = Math.max(...porDia.map((p) => p.total), 1)
   const totalSemana = redondear(porDia.reduce((s, p) => s + p.total, 0))
-  const gananciaSemana = redondear(semana.reduce((s, v) => s + v.total - v.costoTotal, 0) - gastosSemana.reduce((s, g) => s + g.monto, 0))
+  const gananciaSemana = redondear(semana.reduce((s, v) => s + v.total - v.costoTotal, 0) - gastosOperativos(gastosSemana))
   const totalGastos = redondear(gastosDia.reduce((s, g) => s + g.monto, 0))
   const gastosDeCaja = redondear(gastosDia.filter((g) => g.deCaja).reduce((s, g) => s + g.monto, 0))
-  const gananciaNeta = redondear(r.ganancia - totalGastos)
+  const gananciaNeta = redondear(r.ganancia - gastosOperativos(gastosDia))
 
   async function anular(v: Venta) {
     if (!confirm(`¿Anular la venta de ${soles(v.total)}? El stock vuelve a su lugar.`)) return
@@ -67,8 +67,8 @@ export function Caja({ avisar }: { avisar: (m: string) => void }) {
         <span>Vendiste</span>
         <strong>{soles(r.totalVentas)}</strong>
         <span className="hero-sub">
-          Ganancia <b className={gananciaNeta >= 0 ? 'texto-ok' : 'texto-peligro'}>{soles(gananciaNeta)}</b> · {r.numVentas} {r.numVentas === 1 ? 'venta' : 'ventas'}
-          {totalGastos > 0 && <> · gastos {soles(totalGastos)}</>}
+          {!ayudante && <>Ganancia <b className={gananciaNeta >= 0 ? 'texto-ok' : 'texto-peligro'}>{soles(gananciaNeta)}</b> · </>}{r.numVentas} {r.numVentas === 1 ? 'venta' : 'ventas'}
+          {totalGastos > 0 && !ayudante && <> · gastos {soles(totalGastos)}</>}
         </span>
       </div>
 
@@ -94,12 +94,12 @@ export function Caja({ avisar }: { avisar: (m: string) => void }) {
         dia === hoy && <button className="btn-secundario ancho" onClick={() => setCerrando(true)}>🔒 Cerrar caja de hoy</button>
       )}
 
-      <div className="subtitulo con-accion">
+      {!ayudante && <><div className="subtitulo con-accion">
         <span>Gastos del día · {soles(totalGastos)}</span>
         {dia === hoy && <button className="btn-enlace" onClick={() => setNuevoGasto(true)}>+ Anotar gasto</button>}
       </div>
       {gastosDia.length === 0 ? (
-        <p className="nota">Anota lo que sale de caja (proveedor, luz, pasaje) para que la ganancia y el cierre sean reales.</p>
+        <p className="nota">Anota lo que sale de caja (proveedor, luz, pasaje) para que el cierre cuadre. Luz, pasajes y similares bajan tu ganancia; lo que pagas al proveedor no, porque es mercadería que ya se descuenta en cada venta.</p>
       ) : (
         <ul className="lista compacta">
           {gastosDia.map((g) => (
@@ -112,7 +112,7 @@ export function Caja({ avisar }: { avisar: (m: string) => void }) {
         </ul>
       )}
 
-      <h3 className="subtitulo">Últimos 7 días · {soles(totalSemana)} vendido · {soles(gananciaSemana)} ganado</h3>
+      <h3 className="subtitulo">Últimos 7 días · {soles(totalSemana)} vendido · {soles(gananciaSemana)} ganado</h3></>}
       <div className="barras">
         {porDia.map((p) => (
           <button key={p.dia} className={'barra' + (p.dia === dia ? ' activa' : '')} onClick={() => setDia(p.dia)} title={soles(p.total)}>
@@ -123,10 +123,10 @@ export function Caja({ avisar }: { avisar: (m: string) => void }) {
         ))}
       </div>
 
-      <button className="banner-accion" onClick={() => setVerMes(true)}>
+      {!ayudante && <button className="banner-accion" onClick={() => setVerMes(true)}>
         <span>📅 <strong>{mesLabel(mes)}</strong> · vendido {soles(rm.vendido)} · ganancia neta {soles(rm.gananciaNeta)}</span>
         <span>›</span>
-      </button>
+      </button>}
 
       {r.topProductos.length > 0 && (
         <>
@@ -177,7 +177,7 @@ export function Caja({ avisar }: { avisar: (m: string) => void }) {
           <div className="fila-total"><span>Total ({METODOS.find((m) => m.id === detalle.metodoPago)?.label})</span><strong>{soles(detalle.total)}</strong></div>
           {detalle.vuelto != null && detalle.vuelto > 0 && <p className="nota">Pagó con {soles(detalle.pagoCon!)} · vuelto {soles(detalle.vuelto)}</p>}
           <a className="btn-whatsapp" href={`https://wa.me/?text=${encodeURIComponent(textoComprobante(detalle, nombreBodega, METODOS.find((m) => m.id === detalle.metodoPago)?.label ?? ''))}`} target="_blank" rel="noreferrer">💬 Enviar comprobante por WhatsApp</a>
-          <button className="btn-peligro ancho" onClick={() => anular(detalle)}>Anular venta</button>
+          {!ayudante && <button className="btn-peligro ancho" onClick={() => anular(detalle)}>Anular venta</button>}
         </Modal>
       )}
       {verMes && (
@@ -192,7 +192,7 @@ export function Caja({ avisar }: { avisar: (m: string) => void }) {
             <div className="kpi"><span className="kpi-label">Fiado en el mes</span><strong>{soles(rm.fiado)}</strong></div>
             <div className="kpi"><span className="kpi-label">Fiado cobrado</span><strong className="texto-ok">{soles(rm.cobradoFiado)}</strong></div>
           </div>
-          <p className="nota">Ganancia bruta {soles(rm.gananciaBruta)} menos gastos {soles(rm.gastos)}. {rm.diasConVenta} {rm.diasConVenta === 1 ? 'día' : 'días'} con ventas.</p>
+          <p className="nota">Ganancia bruta {soles(rm.gananciaBruta)} menos gastos del negocio {soles(rm.gastos - rm.pagosProveedor)}. Además pagaste {soles(rm.pagosProveedor)} a proveedores (mercadería). {rm.diasConVenta} {rm.diasConVenta === 1 ? 'día' : 'días'} con ventas.</p>
           {rm.topProductos.length > 0 && (
             <>
               <h3 className="subtitulo">Lo más vendido del mes</h3>

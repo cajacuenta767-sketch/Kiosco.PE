@@ -52,7 +52,7 @@
 - Lo más vendido del día.
 - Lista de ventas del día. Tocar una muestra el detalle, permite enviar un **comprobante por WhatsApp** y anularla (el stock vuelve y el fiado se borra).
 - **Resumen del mes:** vendido, ganancia neta, gastos, promedio diario, mejor día, fiado otorgado y cobrado, lo más vendido.
-- **Gastos del día** con categoría y si salieron de caja; la ganancia mostrada es neta.
+- **Gastos del día** con categoría y si salieron de caja. La ganancia mostrada es neta de gastos del negocio (luz, pasajes, personal); los pagos a proveedores no la bajan porque son mercadería ya descontada como costo en cada venta, pero sí cuentan para el cuadre de caja.
 - **Cerrar caja:** con cuánto empezaste + ventas en efectivo = cuánto deberías tener. Ingresas cuánto hay y ves si cuadra,
   falta o sobra. Queda registrado por día.
 - Navegación por días para revisar cualquier fecha pasada.

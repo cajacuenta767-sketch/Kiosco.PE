@@ -1,14 +1,17 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, type Producto, type Unidad } from '../db/db'
 import { CATEGORIAS, desactivarProducto, diasAtras, guardarProducto, ingresarMercaderia, pedidoSugerido, textoPedido } from '../lib/acciones'
 import { fechaCorta, hora, hoyISO, redondear, soles } from '@kiosco/shared'
 import { Campo, Modal, Vacio } from '../components/ui'
 import { Escaner } from '../components/Escaner'
+import { IconoProducto } from '../components/Icono'
+import { reducirFoto } from '../lib/imagen'
+import { EMOJIS_PRODUCTO, emojiPara } from '@kiosco/shared'
 
 type Filtro = 'todos' | 'bajo' | 'agotado'
 
-export function Stock({ avisar }: { avisar: (m: string) => void }) {
+export function Stock({ avisar, ayudante = false }: { avisar: (m: string) => void; ayudante?: boolean }) {
   const productos = useLiveQuery(() => db.productos.orderBy('nombre').toArray(), []) ?? []
   const [busqueda, setBusqueda] = useState('')
   const [filtro, setFiltro] = useState<Filtro>('todos')
@@ -63,7 +66,7 @@ export function Stock({ avisar }: { avisar: (m: string) => void }) {
 
       <div className="buscador con-boton">
         <input type="search" placeholder="Buscar producto…" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
-        <button className="btn-primario" onClick={() => setEditando('nuevo')}>+ Producto</button>
+        {!ayudante && <button className="btn-primario" onClick={() => setEditando('nuevo')}>+ Producto</button>}
       </div>
       <div className="chips">
         {(['todos', 'bajo', 'agotado'] as Filtro[]).map((f) => (
@@ -85,7 +88,8 @@ export function Stock({ avisar }: { avisar: (m: string) => void }) {
             const margen = p.precioVenta > 0 ? ((p.precioVenta - p.precioCompra) / p.precioVenta) * 100 : 0
             return (
               <li key={p.id} className="item">
-                <button className="item-cuerpo" onClick={() => setEditando(p)}>
+                <button className="item-cuerpo" onClick={() => !ayudante && setEditando(p)}>
+                  <IconoProducto p={p} tam={44} />
                   <div className="item-titulo">
                     <strong>{p.nombre}</strong>
                     <span className="item-sub">{p.categoria} · gana {soles(p.precioVenta - p.precioCompra)} ({margen.toFixed(0)}%)</span>
@@ -97,7 +101,7 @@ export function Stock({ avisar }: { avisar: (m: string) => void }) {
                     </span>
                   </div>
                 </button>
-                <button className="btn-mini item-accion" title="Ingresar mercadería" onClick={() => setIngresando(p)}>＋ stock</button>
+                {!ayudante && <button className="btn-mini item-accion" title="Ingresar mercadería" onClick={() => setIngresando(p)}>＋ stock</button>}
               </li>
             )
           })}
@@ -153,6 +157,10 @@ function FormProducto({ producto, onCerrar, onGuardado }: { producto: Producto |
     stockMinimo: producto ? String(producto.stockMinimo) : '5',
     unidad: (producto?.unidad ?? 'und') as Unidad,
   })
+  const [emoji, setEmoji] = useState(producto?.emoji ?? '')
+  const [imagen, setImagen] = useState(producto?.imagen ?? '')
+  const [elegirIcono, setElegirIcono] = useState(false)
+  const fotoRef = useRef<HTMLInputElement>(null)
   const [error, setError] = useState('')
   const [escaneando, setEscaneando] = useState(false)
   const set = (k: keyof typeof f, v: string) => setF((s) => ({ ...s, [k]: v }))
@@ -175,6 +183,8 @@ function FormProducto({ producto, onCerrar, onGuardado }: { producto: Producto |
       stockMinimo: Number(f.stockMinimo) || 0,
       unidad: f.unidad,
       activo: true,
+      emoji: emoji || undefined,
+      imagen: imagen || undefined,
     }
     await guardarProducto(datos, producto ?? undefined)
     onGuardado(producto ? 'Producto actualizado' : 'Producto agregado')
@@ -189,6 +199,23 @@ function FormProducto({ producto, onCerrar, onGuardado }: { producto: Producto |
 
   return (
     <Modal titulo={producto ? 'Editar producto' : 'Nuevo producto'} onCerrar={onCerrar}>
+      <div className="imagen-producto">
+        <IconoProducto p={{ nombre: f.nombre, categoria: f.categoria, emoji, imagen }} tam={72} />
+        <div className="imagen-acciones">
+          <button type="button" className="btn-secundario" onClick={() => fotoRef.current?.click()}>📷 Tomar foto</button>
+          <button type="button" className="btn-secundario" onClick={() => setElegirIcono((v) => !v)}>😀 Elegir ícono</button>
+          {(imagen || emoji) && <button type="button" className="btn-enlace" onClick={() => { setImagen(''); setEmoji('') }}>Quitar</button>}
+        </div>
+        <input ref={fotoRef} type="file" accept="image/*" capture="environment" hidden onChange={async (e) => { const a = e.target.files?.[0]; if (a) { try { setImagen(await reducirFoto(a)); setEmoji('') } catch { setError('No se pudo leer la foto') } } e.target.value = '' }} />
+      </div>
+      {elegirIcono && (
+        <div className="emojis">
+          {EMOJIS_PRODUCTO.map((em) => (
+            <button type="button" key={em} className={'emoji-opcion' + (emoji === em ? ' activo' : '')} onClick={() => { setEmoji(em); setImagen(''); setElegirIcono(false) }}>{em}</button>
+          ))}
+        </div>
+      )}
+      <p className="nota">Sin foto ni ícono, la app le pone uno sola según el nombre: {emojiPara(f.nombre || 'x', f.categoria)}</p>
       <Campo label="Nombre">
         <input autoFocus type="text" placeholder="Ej. Inca Kola 500ml" value={f.nombre} onChange={(e) => set('nombre', e.target.value)} />
       </Campo>

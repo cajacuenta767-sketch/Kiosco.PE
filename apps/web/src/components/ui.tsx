@@ -40,7 +40,17 @@ export function Campo({ label, children, ayuda }: { label: string; children: Rea
   )
 }
 
-export function Toast({ mensaje }: { mensaje: string | null }) {
+export interface AccionToast {
+  label: string
+  fn: () => void
+}
+
+export function Toast({ mensaje, accion }: { mensaje: string | null; accion?: AccionToast | null }) {
   if (!mensaje) return null
-  return <div className="toast" role="status">{mensaje}</div>
+  return (
+    <div className="toast" role="status">
+      <span>{mensaje}</span>
+      {accion && <button className="toast-accion" onClick={accion.fn}>{accion.label}</button>}
+    </div>
+  )
 }

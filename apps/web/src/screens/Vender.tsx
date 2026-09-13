@@ -1,14 +1,17 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, type Cliente, type MetodoPago, type Producto } from '../db/db'
-import { METODOS, diasAtras, guardarCliente, lineaLibre, registrarVenta, totalCarrito, unidadesVendidas, type LineaCarrito } from '../lib/acciones'
+import { METODOS, anularVenta, diasAtras, guardarCliente, lineaLibre, registrarVenta, totalCarrito, unidadesVendidas, type LineaCarrito } from '../lib/acciones'
 import { hoyISO, redondear, soles } from '@kiosco/shared'
 import { Campo, Modal } from '../components/ui'
 import { Escaner } from '../components/Escaner'
+import { IconoProducto } from '../components/Icono'
+import { sonarCobro } from '../lib/sonido'
+import type { AccionToast } from '../components/ui'
 
 const MAS_VENDIDOS = '🔥 Más vendidos'
 
-export function Vender({ avisar }: { avisar: (m: string) => void }) {
+export function Vender({ avisar }: { avisar: (m: string, accion?: AccionToast) => void }) {
   const productos = useLiveQuery(() => db.productos.toArray(), []) ?? []
   const clientes = useLiveQuery(() => db.clientes.orderBy('nombre').toArray(), []) ?? []
   const ventas30 = useLiveQuery(() => db.ventas.where('dia').between(diasAtras(30), hoyISO(), true, true).toArray(), []) ?? []
@@ -80,12 +83,23 @@ export function Vender({ avisar }: { avisar: (m: string) => void }) {
 
   async function confirmar(metodo: MetodoPago, clienteId?: string, pagoCon?: number) {
     try {
-      await registrarVenta({ lineas: carrito, metodoPago: metodo, clienteId, pagoCon })
+      const ventaId = await registrarVenta({ lineas: carrito, metodoPago: metodo, clienteId, pagoCon })
       setCarrito([])
       setCobrando(false)
       setVerCarrito(false)
+      void sonarCobro()
       const vuelto = metodo === 'efectivo' && pagoCon != null ? redondear(pagoCon - total) : 0
-      avisar(vuelto > 0 ? `Venta registrada · Vuelto ${soles(vuelto)}` : `Venta registrada · ${soles(total)}`)
+      const deshacer: AccionToast = {
+        label: 'Deshacer',
+        fn: async () => {
+          const v = await db.ventas.get(ventaId)
+          if (v) {
+            await anularVenta(v)
+            avisar('Venta deshecha · el stock volvió')
+          }
+        },
+      }
+      avisar(vuelto > 0 ? `Venta registrada · Vuelto ${soles(vuelto)}` : `Venta registrada · ${soles(total)}`, deshacer)
     } catch (e) {
       avisar((e as Error).message)
     }
@@ -122,6 +136,7 @@ export function Vender({ avisar }: { avisar: (m: string) => void }) {
           const bajo = !agotado && p.stock <= p.stockMinimo
           return (
             <button key={p.id} className={'tarjeta-producto' + (enCarrito ? ' seleccionado' : '') + (agotado ? ' agotado' : '')} onClick={() => agregar(p)}>
+              <IconoProducto p={p} tam={40} />
               <span className="tp-nombre">{p.nombre}</span>
               <span className="tp-precio">{soles(p.precioVenta)}{p.unidad === 'kg' ? '/kg' : ''}</span>
               <span className={'tp-stock' + (bajo ? ' bajo' : '') + (agotado ? ' cero' : '')}>{agotado ? 'Sin stock' : `${p.stock} ${p.unidad}`}</span>

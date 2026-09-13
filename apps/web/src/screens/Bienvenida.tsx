@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { setConfig } from '../db/db'
-import { sembrarSiVacio } from '../db/seed'
+import { sembrarDemo, sembrarSiVacio } from '../db/seed'
 import { guardarNombreBodega } from '../lib/acciones'
 import { urlPorDefecto, vincularConCodigo } from '../sync/motor'
 import { Campo } from '../components/ui'
@@ -15,11 +15,12 @@ export function Bienvenida({ onListo }: { onListo: () => void }) {
   const [error, setError] = useState('')
   const [ocupado, setOcupado] = useState(false)
 
-  async function terminar(conEjemplo: boolean) {
+  async function terminar(conEjemplo: boolean, conMovimiento = false) {
     setOcupado(true)
     try {
       if (nombre.trim()) await guardarNombreBodega(nombre)
-      if (conEjemplo) await sembrarSiVacio()
+      if (conMovimiento) await sembrarDemo()
+      else if (conEjemplo) await sembrarSiVacio()
       await setConfig('bienvenida', '1')
       onListo()
     } finally {
@@ -57,6 +58,7 @@ export function Bienvenida({ onListo }: { onListo: () => void }) {
           <button className="btn-primario grande ancho" disabled={ocupado} onClick={() => terminar(true)}>Empezar con productos de ejemplo</button>
           <p className="nota centrado">Verás cómo funciona con 28 productos típicos. Los cambias o borras cuando quieras.</p>
           <button className="btn-secundario ancho" disabled={ocupado} onClick={() => terminar(false)}>Empezar desde cero</button>
+          <button className="btn-secundario ancho" disabled={ocupado} onClick={() => terminar(true, true)}>👀 Ver una bodega de ejemplo con movimiento</button>
           <button className="btn-enlace" onClick={() => setModo('vincular')}>Ya uso Kiosco.PE en otro celular</button>
         </div>
       ) : (
