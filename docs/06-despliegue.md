@@ -55,6 +55,13 @@ Si se prefiere la PWA en Cloudflare Pages o Netlify y la API aparte:
 2. Publicar `apps/web/dist`.
 3. En la API, `CORS_ORIGENES=https://app.kiosco.pe` y `SERVIR_WEB=false`.
 
+## Mantenimiento
+
+```bash
+npm run compactar -w @kiosco/api     # conserva el último cambio por registro y borra códigos vencidos
+```
+Programarlo una vez por noche (cron del hosting o `fly machine run`). Es seguro en caliente.
+
 ## Respaldo de la nube
 
 Con PGlite: copiar la carpeta del volumen (`fly ssh console` → `tar` de `/app/data`). Con Postgres: el respaldo del proveedor.

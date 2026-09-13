@@ -13,6 +13,7 @@ export function Caja({ avisar }: { avisar: (m: string) => void }) {
   const gastosDia = useLiveQuery(() => db.gastos.where('dia').equals(dia).reverse().sortBy('fecha'), [dia]) ?? []
   const abonosDia = useLiveQuery(() => db.movimientosFiado.where('fecha').between(`${dia}T00:00:00`, `${dia}T23:59:59.999Z`, true, true).filter((m) => m.tipo === 'abono').toArray(), [dia]) ?? []
   const cobradoFiado = redondear(abonosDia.reduce((s, m) => s + m.monto, 0))
+  const cobradoFiadoEfectivo = redondear(abonosDia.filter((m) => (m.metodo ?? 'efectivo') === 'efectivo').reduce((s, m) => s + m.monto, 0))
   const [nuevoGasto, setNuevoGasto] = useState(false)
   const ultimos7 = useMemo(() => {
     const dias: string[] = []
@@ -158,7 +159,7 @@ export function Caja({ avisar }: { avisar: (m: string) => void }) {
       )}
 
       {cerrando && (
-        <CerrarCaja efectivoVentas={r.porMetodo.efectivo} cobradoFiado={cobradoFiado} gastosDeCaja={gastosDeCaja} totalVentas={r.totalVentas} dia={dia} onCerrar={() => setCerrando(false)} onHecho={() => { setCerrando(false); avisar('Caja cerrada') }} />
+        <CerrarCaja efectivoVentas={r.porMetodo.efectivo} cobradoFiado={cobradoFiadoEfectivo} gastosDeCaja={gastosDeCaja} totalVentas={r.totalVentas} dia={dia} onCerrar={() => setCerrando(false)} onHecho={() => { setCerrando(false); avisar('Caja cerrada') }} />
       )}
       {nuevoGasto && (
         <FormGasto onCerrar={() => setNuevoGasto(false)} onHecho={(g) => { setNuevoGasto(false); avisar(`Gasto de ${soles(g.monto)} anotado`) }} />
@@ -262,7 +263,7 @@ function CerrarCaja({ efectivoVentas, cobradoFiado, gastosDeCaja, totalVentas, d
         <input autoFocus type="number" inputMode="decimal" min={0} value={inicial} onChange={(e) => setInicial(e.target.value)} />
       </Campo>
       <p className="nota">
-        Ventas en efectivo de hoy: <strong>{soles(efectivoVentas)}</strong>.{cobradoFiado > 0 && <> Fiados cobrados: <strong>{soles(cobradoFiado)}</strong>.</>}{gastosDeCaja > 0 && <> Gastos que salieron de caja: <strong>{soles(gastosDeCaja)}</strong>.</>} Deberías tener <strong>{soles(esperado)}</strong> en caja.
+        Ventas en efectivo de hoy: <strong>{soles(efectivoVentas)}</strong>.{cobradoFiado > 0 && <> Fiados cobrados en efectivo: <strong>{soles(cobradoFiado)}</strong>.</>}{gastosDeCaja > 0 && <> Gastos que salieron de caja: <strong>{soles(gastosDeCaja)}</strong>.</>} Deberías tener <strong>{soles(esperado)}</strong> en caja.
       </p>
       <Campo label="¿Cuánto efectivo hay realmente? (S/)">
         <input type="number" inputMode="decimal" min={0} value={contado} onChange={(e) => setContado(e.target.value)} />

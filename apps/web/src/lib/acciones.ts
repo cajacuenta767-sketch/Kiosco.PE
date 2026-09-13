@@ -141,11 +141,11 @@ export async function guardarCliente(datos: { nombre: string; telefono?: string;
   })
 }
 
-export async function registrarAbono(clienteId: string, monto: number, nota?: string) {
+export async function registrarAbono(clienteId: string, monto: number, metodo: Exclude<MetodoPago, 'fiado'> = 'efectivo', nota?: string) {
   if (monto <= 0) throw new Error('El abono debe ser mayor a cero')
   await db.transaction('rw', [db.movimientosFiado, db.cola], async () => {
     const fecha = ahoraISO()
-    await poner('movimientosFiado', { id: uuid(), actualizadoEn: fecha, clienteId, fecha, tipo: 'abono', monto: redondear(monto), nota })
+    await poner('movimientosFiado', { id: uuid(), actualizadoEn: fecha, clienteId, fecha, tipo: 'abono', monto: redondear(monto), metodo, nota })
   })
 }
 

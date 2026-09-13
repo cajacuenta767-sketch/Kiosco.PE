@@ -46,10 +46,9 @@ Probado con dos celulares vendiendo, fiando y anulando sobre la misma bodega.
 - ~~Gastos~~ ✅ (v0.2).
 
 ### Deuda técnica conocida
-- La bitácora `cambios` crece sin límite. Antes de miles de bodegas: un trabajo nocturno que conserve solo el último
-  cambio por registro y una ruta de "estado completo" para vincular celulares sin recorrer todo el historial.
-- Los abonos de fiados se asumen en efectivo. Falta registrar el método (Yape/Plin) al abonar.
-- Los códigos de vínculo vencidos no se borran; son pocos bytes, pero conviene limpiarlos.
+- La bitácora `cambios` se compacta con `npm run compactar -w @kiosco/api` (conserva el último cambio por registro y
+  borra códigos vencidos). Falta programarlo como tarea nocturna en el hosting y una ruta de "estado completo" para
+  vincular celulares sin recorrer el historial cuando haya años de datos.
 
 ## Fase 3 · Formalización y crecimiento (3 a 6 meses)
 

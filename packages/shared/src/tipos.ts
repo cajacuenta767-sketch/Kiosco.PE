@@ -56,6 +56,7 @@ export interface MovimientoFiado extends Registro {
   fecha: string
   tipo: 'fiado' | 'abono'
   monto: number
+  metodo?: Exclude<MetodoPago, 'fiado'> // cómo pagó el abono; si falta, efectivo
   ventaId?: string
   nota?: string
 }

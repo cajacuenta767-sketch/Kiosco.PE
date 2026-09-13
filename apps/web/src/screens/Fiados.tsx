@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db, type Cliente, type MovimientoFiado } from '../db/db'
-import { deudaDe, guardarCliente, registrarAbono } from '../lib/acciones'
+import { db, type Cliente, type MetodoPago, type MovimientoFiado } from '../db/db'
+import { METODOS, deudaDe, guardarCliente, registrarAbono } from '../lib/acciones'
 import { fechaCorta, hora, hoyISO, soles } from '@kiosco/shared'
 import { Campo, Modal, Vacio } from '../components/ui'
 
@@ -125,12 +125,13 @@ function FormCliente({ cliente, onCerrar, onGuardado }: { cliente?: Cliente; onC
 function DetalleCliente({ cliente, movs, nombreBodega, onCerrar, avisar }: { cliente: Cliente; movs: MovimientoFiado[]; nombreBodega: string; onCerrar: () => void; avisar: (m: string) => void }) {
   const deuda = deudaDe(movs)
   const [monto, setMonto] = useState('')
+  const [metodo, setMetodo] = useState<Exclude<MetodoPago, 'fiado'>>('efectivo')
   const [editar, setEditar] = useState(false)
   const n = Number(monto) || 0
 
   async function abonar(cantidad: number) {
     try {
-      await registrarAbono(cliente.id, cantidad)
+      await registrarAbono(cliente.id, cantidad, metodo)
       setMonto('')
       avisar(`Abono de ${soles(cantidad)} registrado`)
     } catch (e) {
@@ -155,6 +156,11 @@ function DetalleCliente({ cliente, movs, nombreBodega, onCerrar, avisar }: { cli
           <Campo label="Registrar abono (S/)">
             <input type="number" inputMode="decimal" step="0.5" min={0} placeholder={deuda.toFixed(2)} value={monto} onChange={(e) => setMonto(e.target.value)} />
           </Campo>
+          <div className="chips">
+            {METODOS.filter((m) => m.id !== 'fiado').map((m) => (
+              <button key={m.id} className={'chip' + (metodo === m.id ? ' activo' : '')} onClick={() => setMetodo(m.id as Exclude<MetodoPago, 'fiado'>)}>{m.icono} {m.label}</button>
+            ))}
+          </div>
           <div className="acciones">
             <button className="btn-secundario" onClick={() => abonar(deuda)}>Pagó todo</button>
             <button className="btn-primario" disabled={n <= 0} onClick={() => abonar(n)}>Abonar {n > 0 ? soles(n) : ''}</button>
@@ -176,7 +182,7 @@ function DetalleCliente({ cliente, movs, nombreBodega, onCerrar, avisar }: { cli
             <li key={m.id} className={m.tipo}>
               <div>
                 <strong>{m.tipo === 'fiado' ? 'Fiado' : 'Abono'}</strong>
-                <span className="item-sub">{fechaCorta(m.fecha)} {hora(m.fecha)}{m.nota ? ` · ${m.nota}` : ''}</span>
+                <span className="item-sub">{fechaCorta(m.fecha)} {hora(m.fecha)}{m.tipo === 'abono' ? ` · ${METODOS.find((x) => x.id === (m.metodo ?? 'efectivo'))?.label}` : ''}{m.nota ? ` · ${m.nota}` : ''}</span>
               </div>
               <span className={m.tipo === 'fiado' ? 'texto-peligro' : 'texto-ok'}>{m.tipo === 'fiado' ? '+' : '−'}{soles(m.monto)}</span>
             </li>
