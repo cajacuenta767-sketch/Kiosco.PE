@@ -1,0 +1,17 @@
+{
+  "name": "@kiosco/shared",
+  "private": true,
+  "version": "0.2.0",
+  "type": "module",
+  "description": "Tipos de dominio y lógica pura de Kiosco.PE, compartida entre la app y la API.",
+  "exports": { ".": "./src/index.ts" },
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --test --experimental-strip-types src/*.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "typescript": "~5.8.3"
+  }
+}

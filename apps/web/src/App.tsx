@@ -8,7 +8,7 @@ import { Stock } from './screens/Stock'
 import { Fiados } from './screens/Fiados'
 import { Caja } from './screens/Caja'
 import { Ajustes } from './screens/Ajustes'
-import { hoyISO } from './lib/format'
+import { hoyISO } from '@kiosco/shared'
 import { deudaDe } from './lib/acciones'
 
 type Tab = 'vender' | 'stock' | 'fiados' | 'caja' | 'ajustes'
@@ -38,6 +38,12 @@ export default function App() {
   }, [])
 
   const nombre = useLiveQuery(() => db.config.get('nombreBodega'), [])?.value
+  const tema = useLiveQuery(() => db.config.get('tema'), [])?.value ?? 'auto'
+  useEffect(() => {
+    document.documentElement.dataset.tema = tema
+    const color = tema === 'oscuro' || (tema === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches) ? '#0b5d57' : '#0f766e'
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', color)
+  }, [tema])
   const bajos = useLiveQuery(async () => (await db.productos.toArray()).filter((p) => p.activo && p.stock <= p.stockMinimo).length, []) ?? 0
   const ventasHoy = useLiveQuery(() => db.ventas.where('dia').equals(hoyISO()).toArray(), []) ?? []
   const movs = useLiveQuery(() => db.movimientosFiado.toArray(), []) ?? []

@@ -1,0 +1,1 @@
+{"root":["./src/App.tsx","./src/main.tsx","./src/components/Escaner.tsx","./src/components/ui.tsx","./src/db/db.ts","./src/db/seed.ts","./src/lib/acciones.ts","./src/screens/Ajustes.tsx","./src/screens/Caja.tsx","./src/screens/Fiados.tsx","./src/screens/Stock.tsx","./src/screens/Vender.tsx"],"version":"5.8.3"}

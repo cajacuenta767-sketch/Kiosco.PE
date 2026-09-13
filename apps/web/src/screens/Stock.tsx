@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, type Producto, type Unidad } from '../db/db'
-import { CATEGORIAS, ajustarStock, ingresarMercaderia } from '../lib/acciones'
-import { redondear, soles } from '../lib/format'
+import { CATEGORIAS, ajustarStock, diasAtras, ingresarMercaderia, pedidoSugerido, textoPedido } from '../lib/acciones'
+import { hoyISO, redondear, soles } from '@kiosco/shared'
 import { Campo, Modal, Vacio } from '../components/ui'
+import { Escaner } from '../components/Escaner'
 
 type Filtro = 'todos' | 'bajo' | 'agotado'
 
@@ -13,6 +14,10 @@ export function Stock({ avisar }: { avisar: (m: string) => void }) {
   const [filtro, setFiltro] = useState<Filtro>('todos')
   const [editando, setEditando] = useState<Producto | 'nuevo' | null>(null)
   const [ingresando, setIngresando] = useState<Producto | null>(null)
+  const [pedido, setPedido] = useState(false)
+  const ventas14 = useLiveQuery(() => db.ventas.where('dia').between(diasAtras(14), hoyISO(), true, true).toArray(), []) ?? []
+  const nombreBodega = useLiveQuery(() => db.config.get('nombreBodega'), [])?.value ?? ''
+  const lineasPedido = useMemo(() => pedidoSugerido(productos, ventas14), [productos, ventas14])
 
   const activos = productos.filter((p) => p.activo)
   const bajos = activos.filter((p) => p.stock > 0 && p.stock <= p.stockMinimo)
@@ -49,6 +54,12 @@ export function Stock({ avisar }: { avisar: (m: string) => void }) {
       <p className="nota">
         Tienes <strong>{soles(valorInventario)}</strong> invertidos en mercadería, que vendidos serían <strong>{soles(valorVenta)}</strong>.
       </p>
+      {lineasPedido.length > 0 && (
+        <button className="banner-accion" onClick={() => setPedido(true)}>
+          <span>📋 <strong>{lineasPedido.length} {lineasPedido.length === 1 ? 'producto' : 'productos'}</strong> por reponer · pedido sugerido {soles(lineasPedido.reduce((s, l) => s + l.costo, 0))}</span>
+          <span>›</span>
+        </button>
+      )}
 
       <div className="buscador con-boton">
         <input type="search" placeholder="Buscar producto…" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
@@ -104,6 +115,29 @@ export function Stock({ avisar }: { avisar: (m: string) => void }) {
       {ingresando && (
         <Ingreso producto={ingresando} onCerrar={() => setIngresando(null)} onHecho={(m) => { setIngresando(null); avisar(m) }} />
       )}
+      {pedido && (
+        <Modal titulo="Pedido sugerido" onCerrar={() => setPedido(false)}>
+          <p className="nota">Calculado con lo vendido en los últimos 14 días: cubre una semana y nunca baja de tu mínimo.</p>
+          <ul className="historial">
+            {lineasPedido.map((l) => (
+              <li key={l.producto.id}>
+                <div>
+                  <strong>{l.producto.nombre}</strong>
+                  <span className="item-sub">
+                    Tienes {l.producto.stock} {l.producto.unidad}
+                    {l.vendidoPorSemana > 0 ? ` · vendes ${l.vendidoPorSemana}/semana` : ''}
+                    {l.diasDeStock !== null && l.diasDeStock < 7 ? ` · te alcanza ${Math.floor(l.diasDeStock)} ${Math.floor(l.diasDeStock) === 1 ? 'día' : 'días'}` : ''}
+                  </span>
+                </div>
+                <span>Pedir {l.sugerido} {l.producto.unidad}<br /><em className="item-sub">{soles(l.costo)}</em></span>
+              </li>
+            ))}
+          </ul>
+          <div className="fila-total"><span>Inversión aprox.</span><strong>{soles(lineasPedido.reduce((s, l) => s + l.costo, 0))}</strong></div>
+          <a className="btn-whatsapp" href={`https://wa.me/?text=${encodeURIComponent(textoPedido(lineasPedido, nombreBodega))}`} target="_blank" rel="noreferrer">💬 Enviar pedido por WhatsApp</a>
+          <button className="btn-secundario ancho" onClick={async () => { try { await navigator.clipboard.writeText(textoPedido(lineasPedido, nombreBodega)); avisar('Pedido copiado') } catch { avisar('No se pudo copiar') } }}>Copiar lista</button>
+        </Modal>
+      )}
     </div>
   )
 }
@@ -120,6 +154,7 @@ function FormProducto({ producto, onCerrar, onGuardado }: { producto: Producto |
     unidad: (producto?.unidad ?? 'und') as Unidad,
   })
   const [error, setError] = useState('')
+  const [escaneando, setEscaneando] = useState(false)
   const set = (k: keyof typeof f, v: string) => setF((s) => ({ ...s, [k]: v }))
 
   const venta = Number(f.precioVenta) || 0
@@ -200,8 +235,12 @@ function FormProducto({ producto, onCerrar, onGuardado }: { producto: Producto |
         </Campo>
       </div>
       <Campo label="Código de barras (opcional)" ayuda="Escanéalo con la cámara o un lector">
-        <input type="text" inputMode="numeric" value={f.codigoBarras} onChange={(e) => set('codigoBarras', e.target.value)} />
+        <div className="buscador con-boton">
+          <input type="text" inputMode="numeric" value={f.codigoBarras} onChange={(e) => set('codigoBarras', e.target.value)} />
+          <button type="button" className="btn-secundario btn-cuadrado" aria-label="Escanear código" onClick={() => setEscaneando(true)}>📷</button>
+        </div>
       </Campo>
+      {escaneando && <Escaner onCodigo={(c) => { set('codigoBarras', c); setEscaneando(false) }} onCerrar={() => setEscaneando(false)} />}
       {error && <p className="texto-peligro">{error}</p>}
       <div className="acciones">
         {producto && <button className="btn-peligro" onClick={desactivar}>Quitar</button>}

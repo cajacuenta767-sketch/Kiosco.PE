@@ -2,4 +2,8 @@ node_modules
 dist
 dev-dist
 *.local
+.env
 .DS_Store
+android/app-release-bundle.aab
+android/app-release-signed.apk
+android/*.keystore

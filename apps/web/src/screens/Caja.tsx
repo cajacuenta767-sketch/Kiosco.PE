@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db, type Venta } from '../db/db'
-import { METODOS, resumirVentas } from '../lib/acciones'
-import { aDia, diaLabel, fechaLarga, hora, hoyISO, redondear, soles } from '../lib/format'
+import { db, type CategoriaGasto, type Gasto, type Venta } from '../db/db'
+import { CATEGORIAS_GASTO, METODOS, registrarGasto, resumirVentas } from '../lib/acciones'
+import { aDia, diaLabel, fechaLarga, hora, hoyISO, redondear, soles } from '@kiosco/shared'
 import { Campo, Modal, Vacio } from '../components/ui'
 
 export function Caja({ avisar }: { avisar: (m: string) => void }) {
@@ -10,6 +10,8 @@ export function Caja({ avisar }: { avisar: (m: string) => void }) {
   const [dia, setDia] = useState(hoy)
   const ventasDia = useLiveQuery(() => db.ventas.where('dia').equals(dia).reverse().sortBy('fecha'), [dia]) ?? []
   const cierre = useLiveQuery(() => db.cierres.where('dia').equals(dia).first(), [dia])
+  const gastosDia = useLiveQuery(() => db.gastos.where('dia').equals(dia).reverse().sortBy('fecha'), [dia]) ?? []
+  const [nuevoGasto, setNuevoGasto] = useState(false)
   const ultimos7 = useMemo(() => {
     const dias: string[] = []
     for (let i = 6; i >= 0; i--) {
@@ -20,6 +22,7 @@ export function Caja({ avisar }: { avisar: (m: string) => void }) {
     return dias
   }, [])
   const semana = useLiveQuery(() => db.ventas.where('dia').between(ultimos7[0], ultimos7[6], true, true).toArray(), [ultimos7]) ?? []
+  const gastosSemana = useLiveQuery(() => db.gastos.where('dia').between(ultimos7[0], ultimos7[6], true, true).toArray(), [ultimos7]) ?? []
   const [cerrando, setCerrando] = useState(false)
   const [detalle, setDetalle] = useState<Venta | null>(null)
 
@@ -27,7 +30,10 @@ export function Caja({ avisar }: { avisar: (m: string) => void }) {
   const porDia = ultimos7.map((d) => ({ dia: d, total: redondear(semana.filter((v) => v.dia === d).reduce((s, v) => s + v.total, 0)) }))
   const maxDia = Math.max(...porDia.map((p) => p.total), 1)
   const totalSemana = redondear(porDia.reduce((s, p) => s + p.total, 0))
-  const gananciaSemana = redondear(semana.reduce((s, v) => s + v.total - v.costoTotal, 0))
+  const gananciaSemana = redondear(semana.reduce((s, v) => s + v.total - v.costoTotal, 0) - gastosSemana.reduce((s, g) => s + g.monto, 0))
+  const totalGastos = redondear(gastosDia.reduce((s, g) => s + g.monto, 0))
+  const gastosDeCaja = redondear(gastosDia.filter((g) => g.deCaja).reduce((s, g) => s + g.monto, 0))
+  const gananciaNeta = redondear(r.ganancia - totalGastos)
 
   async function anular(v: Venta) {
     if (!confirm(`¿Anular la venta de ${soles(v.total)}? El stock vuelve a su lugar.`)) return
@@ -59,7 +65,8 @@ export function Caja({ avisar }: { avisar: (m: string) => void }) {
         <span>Vendiste</span>
         <strong>{soles(r.totalVentas)}</strong>
         <span className="hero-sub">
-          Ganancia <b className="texto-ok">{soles(r.ganancia)}</b> · {r.numVentas} {r.numVentas === 1 ? 'venta' : 'ventas'}
+          Ganancia <b className={gananciaNeta >= 0 ? 'texto-ok' : 'texto-peligro'}>{soles(gananciaNeta)}</b> · {r.numVentas} {r.numVentas === 1 ? 'venta' : 'ventas'}
+          {totalGastos > 0 && <> · gastos {soles(totalGastos)}</>}
         </span>
       </div>
 
@@ -79,6 +86,24 @@ export function Caja({ avisar }: { avisar: (m: string) => void }) {
         </div>
       ) : (
         dia === hoy && <button className="btn-secundario ancho" onClick={() => setCerrando(true)}>🔒 Cerrar caja de hoy</button>
+      )}
+
+      <div className="subtitulo con-accion">
+        <span>Gastos del día · {soles(totalGastos)}</span>
+        {dia === hoy && <button className="btn-enlace" onClick={() => setNuevoGasto(true)}>+ Anotar gasto</button>}
+      </div>
+      {gastosDia.length === 0 ? (
+        <p className="nota">Anota lo que sale de caja (proveedor, luz, pasaje) para que la ganancia y el cierre sean reales.</p>
+      ) : (
+        <ul className="lista compacta">
+          {gastosDia.map((g) => (
+            <li key={g.id} className="fila-simple">
+              <span>{CATEGORIAS_GASTO.find((c) => c.id === g.categoria)?.icono} {g.nota || CATEGORIAS_GASTO.find((c) => c.id === g.categoria)?.label}{!g.deCaja && <em className="item-sub"> · no salió de caja</em>}</span>
+              <strong className="texto-peligro">−{soles(g.monto)}</strong>
+              <button className="btn-icono chico" aria-label="Eliminar gasto" onClick={async () => { if (confirm('¿Eliminar este gasto?')) await db.gastos.delete(g.id!) }}>✕</button>
+            </li>
+          ))}
+        </ul>
       )}
 
       <h3 className="subtitulo">Últimos 7 días · {soles(totalSemana)} vendido · {soles(gananciaSemana)} ganado</h3>
@@ -123,7 +148,10 @@ export function Caja({ avisar }: { avisar: (m: string) => void }) {
       )}
 
       {cerrando && (
-        <CerrarCaja efectivoVentas={r.porMetodo.efectivo} totalVentas={r.totalVentas} dia={dia} onCerrar={() => setCerrando(false)} onHecho={() => { setCerrando(false); avisar('Caja cerrada') }} />
+        <CerrarCaja efectivoVentas={r.porMetodo.efectivo} gastosDeCaja={gastosDeCaja} totalVentas={r.totalVentas} dia={dia} onCerrar={() => setCerrando(false)} onHecho={() => { setCerrando(false); avisar('Caja cerrada') }} />
+      )}
+      {nuevoGasto && (
+        <FormGasto onCerrar={() => setNuevoGasto(false)} onHecho={(g) => { setNuevoGasto(false); avisar(`Gasto de ${soles(g.monto)} anotado`) }} />
       )}
       {detalle && (
         <Modal titulo={`Venta · ${hora(detalle.fecha)}`} onCerrar={() => setDetalle(null)}>
@@ -151,10 +179,42 @@ function mover(dia: string, n: number): string {
   return aDia(dt)
 }
 
-function CerrarCaja({ efectivoVentas, totalVentas, dia, onCerrar, onHecho }: { efectivoVentas: number; totalVentas: number; dia: string; onCerrar: () => void; onHecho: () => void }) {
+function FormGasto({ onCerrar, onHecho }: { onCerrar: () => void; onHecho: (g: Pick<Gasto, 'monto'>) => void }) {
+  const [monto, setMonto] = useState('')
+  const [categoria, setCategoria] = useState<CategoriaGasto>('proveedor')
+  const [nota, setNota] = useState('')
+  const [deCaja, setDeCaja] = useState(true)
+  const n = Number(monto) || 0
+  async function guardar() {
+    await registrarGasto({ monto: n, categoria, nota, deCaja })
+    onHecho({ monto: n })
+  }
+  return (
+    <Modal titulo="Anotar gasto" onCerrar={onCerrar}>
+      <Campo label="¿Cuánto salió? (S/)">
+        <input autoFocus type="number" inputMode="decimal" step="0.1" min={0} placeholder="0.00" value={monto} onChange={(e) => setMonto(e.target.value)} />
+      </Campo>
+      <div className="chips">
+        {CATEGORIAS_GASTO.map((c) => (
+          <button key={c.id} className={'chip' + (categoria === c.id ? ' activo' : '')} onClick={() => setCategoria(c.id)}>{c.icono} {c.label}</button>
+        ))}
+      </div>
+      <Campo label="¿En qué? (opcional)">
+        <input type="text" placeholder="Ej. pago a Backus, recibo de luz" value={nota} onChange={(e) => setNota(e.target.value)} />
+      </Campo>
+      <label className="check">
+        <input type="checkbox" checked={deCaja} onChange={(e) => setDeCaja(e.target.checked)} />
+        <span>Salió del efectivo de la caja</span>
+      </label>
+      <button className="btn-primario grande ancho" disabled={n <= 0} onClick={guardar}>Anotar gasto {n > 0 ? soles(n) : ''}</button>
+    </Modal>
+  )
+}
+
+function CerrarCaja({ efectivoVentas, gastosDeCaja, totalVentas, dia, onCerrar, onHecho }: { efectivoVentas: number; gastosDeCaja: number; totalVentas: number; dia: string; onCerrar: () => void; onHecho: () => void }) {
   const [inicial, setInicial] = useState('')
   const [contado, setContado] = useState('')
-  const esperado = redondear((Number(inicial) || 0) + efectivoVentas)
+  const esperado = redondear((Number(inicial) || 0) + efectivoVentas - gastosDeCaja)
   const dif = redondear((Number(contado) || 0) - esperado)
   async function guardar() {
     await db.cierres.add({ dia, fecha: new Date().toISOString(), montoInicial: Number(inicial) || 0, efectivoEsperado: esperado, efectivoContado: Number(contado) || 0, diferencia: dif, totalVentas })
@@ -165,7 +225,9 @@ function CerrarCaja({ efectivoVentas, totalVentas, dia, onCerrar, onHecho }: { e
       <Campo label="¿Con cuánto efectivo empezaste el día? (S/)" ayuda="Tu sencillo / caja chica">
         <input autoFocus type="number" inputMode="decimal" min={0} value={inicial} onChange={(e) => setInicial(e.target.value)} />
       </Campo>
-      <p className="nota">Ventas en efectivo de hoy: <strong>{soles(efectivoVentas)}</strong>. Deberías tener <strong>{soles(esperado)}</strong> en caja.</p>
+      <p className="nota">
+        Ventas en efectivo de hoy: <strong>{soles(efectivoVentas)}</strong>.{gastosDeCaja > 0 && <> Gastos que salieron de caja: <strong>{soles(gastosDeCaja)}</strong>.</>} Deberías tener <strong>{soles(esperado)}</strong> en caja.
+      </p>
       <Campo label="¿Cuánto efectivo hay realmente? (S/)">
         <input type="number" inputMode="decimal" min={0} value={contado} onChange={(e) => setContado(e.target.value)} />
       </Campo>

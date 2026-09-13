@@ -1,9 +1,29 @@
-import { db, type ItemVenta, type MetodoPago, type Producto, type Venta } from '../db/db'
-import { hoyISO, redondear } from './format'
+import { db, type CategoriaGasto, type Gasto, type ItemVenta, type MetodoPago, type Producto, type Venta } from '../db/db'
+import { hoyISO, redondear } from '@kiosco/shared'
+
+export { CATEGORIAS, CATEGORIAS_GASTO, METODOS, deudaDe, diasAtras, pedidoSugerido, resumirVentas, textoPedido, unidadesVendidas } from '@kiosco/shared'
+export type { LineaPedido, ResumenDia } from '@kiosco/shared'
 
 export interface LineaCarrito {
+  clave: string
   producto: Producto
   cantidad: number
+}
+
+/** Crea una línea de venta rápida: un monto libre que no está en el catálogo. */
+export function lineaLibre(monto: number, descripcion: string, costo = 0): LineaCarrito {
+  const producto: Producto = {
+    nombre: descripcion.trim() || 'Venta rápida',
+    categoria: 'Otros',
+    precioVenta: redondear(monto),
+    precioCompra: redondear(costo),
+    stock: 0,
+    stockMinimo: 0,
+    unidad: 'und',
+    activo: true,
+    creadoEn: new Date().toISOString(),
+  }
+  return { clave: `libre-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, producto, cantidad: 1 }
 }
 
 export function totalCarrito(lineas: LineaCarrito[]): number {
@@ -23,7 +43,7 @@ export async function registrarVenta(opts: {
 
   const fecha = new Date().toISOString()
   const items: ItemVenta[] = lineas.map((l) => ({
-    productoId: l.producto.id!,
+    productoId: l.producto.id ?? 0,
     nombre: l.producto.nombre,
     cantidad: l.cantidad,
     precio: l.producto.precioVenta,
@@ -48,7 +68,8 @@ export async function registrarVenta(opts: {
   return db.transaction('rw', [db.ventas, db.productos, db.movimientosStock, db.movimientosFiado], async () => {
     const ventaId = (await db.ventas.add(venta)) as number
     for (const l of lineas) {
-      const p = await db.productos.get(l.producto.id!)
+      if (!l.producto.id) continue // venta rápida: no toca stock
+      const p = await db.productos.get(l.producto.id)
       if (!p) continue
       await db.productos.update(p.id!, { stock: redondear(p.stock - l.cantidad) })
       await db.movimientosStock.add({ productoId: p.id!, fecha, tipo: 'venta', cantidad: -l.cantidad, nota: `Venta #${ventaId}` })
@@ -87,43 +108,10 @@ export async function registrarAbono(clienteId: number, monto: number, nota?: st
   await db.movimientosFiado.add({ clienteId, fecha: new Date().toISOString(), tipo: 'abono', monto: redondear(monto), nota })
 }
 
-export function deudaDe(movs: { tipo: 'fiado' | 'abono'; monto: number }[]): number {
-  return redondear(movs.reduce((s, m) => s + (m.tipo === 'fiado' ? m.monto : -m.monto), 0))
-}
-
-export interface ResumenDia {
-  dia: string
-  totalVentas: number
-  ganancia: number
-  numVentas: number
-  porMetodo: Record<MetodoPago, number>
-  topProductos: { nombre: string; cantidad: number; total: number }[]
-}
-
-export function resumirVentas(ventas: Venta[], dia: string): ResumenDia {
-  const porMetodo: Record<MetodoPago, number> = { efectivo: 0, yape: 0, plin: 0, tarjeta: 0, fiado: 0 }
-  const top = new Map<string, { nombre: string; cantidad: number; total: number }>()
-  let totalVentas = 0
-  let ganancia = 0
-  for (const v of ventas) {
-    totalVentas += v.total
-    ganancia += v.total - v.costoTotal
-    porMetodo[v.metodoPago] += v.total
-    for (const i of v.items) {
-      const t = top.get(i.nombre) ?? { nombre: i.nombre, cantidad: 0, total: 0 }
-      t.cantidad += i.cantidad
-      t.total += i.precio * i.cantidad
-      top.set(i.nombre, t)
-    }
-  }
-  return {
-    dia,
-    totalVentas: redondear(totalVentas),
-    ganancia: redondear(ganancia),
-    numVentas: ventas.length,
-    porMetodo,
-    topProductos: [...top.values()].sort((a, b) => b.total - a.total).slice(0, 5),
-  }
+export async function registrarGasto(g: { monto: number; categoria: CategoriaGasto; nota?: string; deCaja: boolean }) {
+  if (g.monto <= 0) throw new Error('El gasto debe ser mayor a cero')
+  const gasto: Gasto = { fecha: new Date().toISOString(), dia: hoyISO(), monto: redondear(g.monto), categoria: g.categoria, nota: g.nota?.trim() || undefined, deCaja: g.deCaja }
+  await db.gastos.add(gasto)
 }
 
 export async function exportarBackup(): Promise<string> {
@@ -137,6 +125,7 @@ export async function exportarBackup(): Promise<string> {
     movimientosFiado: await db.movimientosFiado.toArray(),
     movimientosStock: await db.movimientosStock.toArray(),
     cierres: await db.cierres.toArray(),
+    gastos: await db.gastos.toArray(),
     config: await db.config.toArray(),
   }
   return JSON.stringify(data, null, 2)
@@ -153,6 +142,7 @@ export async function importarBackup(json: string) {
     await db.movimientosFiado.bulkAdd(data.movimientosFiado ?? [])
     await db.movimientosStock.bulkAdd(data.movimientosStock ?? [])
     await db.cierres.bulkAdd(data.cierres ?? [])
+    await db.gastos.bulkAdd(data.gastos ?? [])
     await db.config.bulkAdd(data.config ?? [])
   })
 }
@@ -162,13 +152,3 @@ export async function borrarTodo() {
     await Promise.all(db.tables.map((t) => t.clear()))
   })
 }
-
-export const METODOS: { id: MetodoPago; label: string; icono: string }[] = [
-  { id: 'efectivo', label: 'Efectivo', icono: '💵' },
-  { id: 'yape', label: 'Yape', icono: '📱' },
-  { id: 'plin', label: 'Plin', icono: '📲' },
-  { id: 'tarjeta', label: 'Tarjeta', icono: '💳' },
-  { id: 'fiado', label: 'Fiado', icono: '📒' },
-]
-
-export const CATEGORIAS = ['Bebidas', 'Abarrotes', 'Golosinas', 'Snacks', 'Panadería', 'Limpieza', 'Cuidado personal', 'Otros']

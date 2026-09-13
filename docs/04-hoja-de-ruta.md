@@ -9,7 +9,11 @@
 - Probado de punta a punta en navegador: venta con vuelto, fiado a cliente nuevo, Yape, ingreso de mercadería,
   producto nuevo, abono, cierre de caja, persistencia tras recarga.
 
-## Fase 1 · Validación en la calle (2 a 4 semanas)
+## Fase 1 · Validación en la calle (2 a 4 semanas) — software listo ✅
+
+Ya implementado en v0.2: venta rápida sin producto, más vendidos primero, escáner de código de barras con la cámara,
+pedido sugerido al proveedor, gastos de caja con ganancia neta, modo oscuro, monorepo con API de sincronización y
+empaquetado para Play Store. Falta la parte que no se programa: llevarlo a 10 bodegas.
 
 Objetivo: **10 bodegas en Lima usándolo a diario**, con el catálogo cargado por nosotros en persona.
 

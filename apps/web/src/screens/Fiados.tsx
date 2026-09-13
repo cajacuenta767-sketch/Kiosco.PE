@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, type Cliente, type MovimientoFiado } from '../db/db'
 import { deudaDe, registrarAbono } from '../lib/acciones'
-import { fechaCorta, hora, soles } from '../lib/format'
+import { fechaCorta, hora, soles } from '@kiosco/shared'
 import { Campo, Modal, Vacio } from '../components/ui'
 
 export function Fiados({ avisar }: { avisar: (m: string) => void }) {

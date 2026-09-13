@@ -7,6 +7,7 @@ import { Campo } from '../components/ui'
 
 export function Ajustes({ avisar }: { avisar: (m: string) => void }) {
   const nombreGuardado = useLiveQuery(() => db.config.get('nombreBodega'), [])?.value ?? ''
+  const tema = useLiveQuery(() => db.config.get('tema'), [])?.value ?? 'auto'
   const [nombre, setNombre] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
   const conteos = useLiveQuery(async () => ({
@@ -59,6 +60,13 @@ export function Ajustes({ avisar }: { avisar: (m: string) => void }) {
           <button className="btn-primario" onClick={guardarNombre}>Guardar</button>
         </div>
       </Campo>
+
+      <h3 className="subtitulo">Apariencia</h3>
+      <div className="chips">
+        {([['auto', '📱 Como el celular'], ['claro', '☀️ Claro'], ['oscuro', '🌙 Oscuro']] as const).map(([id, label]) => (
+          <button key={id} className={'chip' + (tema === id ? ' activo' : '')} onClick={() => setConfig('tema', id)}>{label}</button>
+        ))}
+      </div>
 
       <h3 className="subtitulo">Tus datos</h3>
       <p className="nota">
