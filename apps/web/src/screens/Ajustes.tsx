@@ -87,7 +87,7 @@ export function Ajustes({ avisar }: { avisar: (m: string) => void }) {
       <h3 className="subtitulo">Consejo</h3>
       <p className="nota">Descarga un respaldo cada semana y guárdalo en tu WhatsApp o Google Drive. Si cambias de celular, restáuralo y sigues donde te quedaste.</p>
 
-      <p className="pie">Kiosco.PE v0.1 · Hecho para las bodegas del Perú 🇵🇪</p>
+      <p className="pie">Kiosco.PE v0.4 · Hecho para las bodegas del Perú 🇵🇪</p>
     </div>
   )
 }

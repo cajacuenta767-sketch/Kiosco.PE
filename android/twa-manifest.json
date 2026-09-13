@@ -17,14 +17,16 @@
     "path": "./android.keystore",
     "alias": "kiosco"
   },
-  "appVersionName": "0.2.0",
-  "appVersionCode": 2,
+  "appVersionName": "0.4.0",
+  "appVersionCode": 4,
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://app.kiosco.pe/manifest.webmanifest",
   "fallbackType": "customtabs",
   "features": {},
-  "alphaDependencies": { "enabled": false },
+  "alphaDependencies": {
+    "enabled": false
+  },
   "enableSiteSettingsShortcut": true,
   "isChromeOSOnly": false,
   "isMetaQuest": false,

@@ -27,7 +27,7 @@ Mejoras que casi seguro saldrán de ahí y ya están pensadas:
 - **Botón "venta rápida sin producto":** escribir S/ 2.50 y cobrar, para lo que no está en el catálogo. Sin esto, el bodeguero
   deja de usar la app en hora punta.
 - **Favoritos / más vendidos primero** en la cuadrícula de Vender.
-- **Precios múltiples:** unidad y paquete (una Inca Kola a S/ 3, el six-pack a S/ 16).
+- **Precios múltiples:** unidad y paquete (una Inca Kola a S/ 3, el six-pack a S/ 16). Pendiente.
 - **Modo oscuro** para bodegas que atienden de noche.
 
 ## Fase 2 · Lo que hace que se quede (1 a 2 meses) — nube y multi-celular listos ✅
@@ -44,6 +44,12 @@ Probado con dos celulares vendiendo, fiando y anulando sobre la misma bodega.
   al proveedor por WhatsApp.
 - ~~Fiados con fecha de pago acordada~~ ✅ (v0.4). Falta el recordatorio automático el día que toca (notificación push, Fase 3).
 - ~~Gastos~~ ✅ (v0.2).
+
+### Deuda técnica conocida
+- La bitácora `cambios` crece sin límite. Antes de miles de bodegas: un trabajo nocturno que conserve solo el último
+  cambio por registro y una ruta de "estado completo" para vincular celulares sin recorrer todo el historial.
+- Los abonos de fiados se asumen en efectivo. Falta registrar el método (Yape/Plin) al abonar.
+- Los códigos de vínculo vencidos no se borran; son pocos bytes, pero conviene limpiarlos.
 
 ## Fase 3 · Formalización y crecimiento (3 a 6 meses)
 
