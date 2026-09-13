@@ -11,6 +11,8 @@ const GUIAS: Record<Tab, { titulo: string; pasos: [string, string][] }> = {
       ['💵', 'Elige cómo te pagan: efectivo, Yape, Plin o fiado. Si es efectivo, toca el billete con el que te pagan y verás el vuelto.'],
       ['✅', 'Toca "Confirmar". Listo: la venta queda anotada y el stock baja solo.'],
       ['🔍', '¿No encuentras el producto? Escribe su nombre arriba, o toca "S/" para cobrar cualquier monto.'],
+      ['📦', 'Si un producto tiene precio por six-pack o docena, verás el botoncito debajo del precio. Tócalo y se cobra el paquete.'],
+      ['👤', 'Toca el botón de la persona para cargar "lo de siempre" de un cliente conocido.'],
     ],
   },
   stock: {
@@ -46,6 +48,7 @@ const GUIAS: Record<Tab, { titulo: string; pasos: [string, string][] }> = {
       ['🏪', 'Escribe el nombre de tu bodega: sale en los mensajes de WhatsApp.'],
       ['☁️', 'Activa la nube para que tus datos queden guardados aunque pierdas el celular, y para atender desde dos celulares.'],
       ['🔤', 'Si la letra se ve chica, elige "Letra grande".'],
+      ['📲', 'Sube la captura de tu QR de Yape y Plin: al cobrar, se lo muestras al cliente en grande para que escanee.'],
       ['👩‍👧', 'Con "Modo ayudante" otra persona puede vender sin ver tus ganancias ni cambiar precios.'],
     ],
   },

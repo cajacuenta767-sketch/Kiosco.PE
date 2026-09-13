@@ -35,7 +35,7 @@ const primero = await page.locator('.tarjeta-producto .tp-nombre').first().inner
 console.log('Más vendido primero:', primero)
 
 // Stock: pedido sugerido
-await page.getByRole('button', { name: 'Stock' }).click()
+await page.getByRole('button', { name: 'Stock', exact: true }).click()
 await page.locator('.banner-accion').waitFor()
 await shot('22-stock-banner')
 await page.locator('.banner-accion').click()
@@ -46,7 +46,7 @@ console.log('Pedido:', pedido.map((t) => t.replace(/\n/g, ' | ')).join(' || '))
 await page.getByRole('button', { name: 'Cerrar', exact: true }).click()
 
 // Caja: gasto + cierre con gasto
-await page.getByRole('button', { name: 'Caja' }).click()
+await page.getByRole('button', { name: 'Caja', exact: true }).click()
 await page.getByText('Vendiste').waitFor()
 await page.getByRole('button', { name: '+ Anotar gasto' }).click()
 await page.getByLabel(/Cuánto salió/).fill('20')
@@ -65,11 +65,11 @@ console.log('Cierre:', esperado)
 await page.getByRole('button', { name: 'Cerrar', exact: true }).click()
 
 // Tema oscuro
-await page.getByRole('button', { name: 'Más' }).click()
+await page.getByRole('button', { name: 'Más', exact: true }).click()
 await page.getByRole('button', { name: '🌙 Oscuro' }).click()
 await page.waitForTimeout(300)
 await shot('26-ajustes-oscuro')
-await page.getByRole('button', { name: 'Vender' }).click()
+await page.getByRole('button', { name: 'Vender', exact: true }).click()
 await page.getByText('Inca Kola 500ml').waitFor()
 await shot('27-vender-oscuro')
 console.log('data-tema:', await page.evaluate(() => document.documentElement.dataset.tema))

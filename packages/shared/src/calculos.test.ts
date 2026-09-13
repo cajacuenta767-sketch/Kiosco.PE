@@ -64,3 +64,35 @@ test('resumirMes agrega ventas, gastos y fiados del mes', async () => {
   assert.match(texto, /TOTAL S\/ 8\.00 \(Efectivo\)/)
   assert.match(texto, /Vuelto S\/ 2\.00/)
 })
+
+test('loDeSiempre encuentra la compra habitual', async () => {
+  const { loDeSiempre } = await import('./calculos.ts')
+  const it = (productoId: string, nombre: string, cantidad: number) => ({ productoId, nombre, cantidad, precio: 1, costo: 0.5 })
+  const ventas = [
+    venta({ fecha: '2026-09-01T10:00:00Z', items: [it('pan', 'Pan', 4), it('leche', 'Leche', 1)] }),
+    venta({ fecha: '2026-09-02T10:00:00Z', items: [it('pan', 'Pan', 5), it('leche', 'Leche', 1), it('arroz', 'Arroz', 1)] }),
+    venta({ fecha: '2026-09-03T10:00:00Z', items: [it('pan', 'Pan', 4), it('gaseosa', 'Gaseosa', 1)] }),
+    venta({ fecha: '2026-09-04T10:00:00Z', items: [it('pan', 'Pan', 6), it('leche', 'Leche', 2)] }),
+  ]
+  assert.deepEqual(loDeSiempre(ventas), [
+    { productoId: 'leche', nombre: 'Leche', cantidad: 1 },
+    { productoId: 'pan', nombre: 'Pan', cantidad: 5 },
+  ])
+  // Con pocas compras, es la última
+  assert.deepEqual(loDeSiempre(ventas.slice(0, 2)), [{ productoId: 'pan', nombre: 'Pan', cantidad: 5 }, { productoId: 'leche', nombre: 'Leche', cantidad: 1 }, { productoId: 'arroz', nombre: 'Arroz', cantidad: 1 }])
+  assert.deepEqual(loDeSiempre([]), [])
+})
+
+test('textoListaPrecios agrupa por categoría e incluye paquetes', async () => {
+  const { textoListaPrecios } = await import('./calculos.ts')
+  const t = textoListaPrecios([
+    producto({ id: 'a', nombre: 'Pilsen', categoria: 'Bebidas', precioVenta: 7, paquetes: [{ nombre: 'Six-pack', cantidad: 6, precio: 38 }] }),
+    producto({ id: 'b', nombre: 'Arroz', categoria: 'Abarrotes', precioVenta: 4.5, unidad: 'kg' }),
+    producto({ id: 'c', nombre: 'Viejo', categoria: 'Abarrotes', precioVenta: 1, activo: false }),
+  ], 'Bodega X', () => '•')
+  assert.match(t, /\*Bodega X\*/)
+  assert.ok(t.indexOf('ABARROTES') < t.indexOf('BEBIDAS'))
+  assert.match(t, /Arroz — S\/ 4\.50 el kilo/)
+  assert.match(t, /Six-pack \(x6\) — S\/ 38\.00/)
+  assert.doesNotMatch(t, /Viejo/)
+})

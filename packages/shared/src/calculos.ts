@@ -155,3 +155,50 @@ export function resumirMes(mes: string, ventas: Venta[], gastos: { monto: number
     topProductos: [...top.values()].sort((a, b) => b.total - a.total).slice(0, 5),
   }
 }
+
+/**
+ * "Lo de siempre" de un cliente: los productos que se lleva en al menos la mitad de sus últimas compras,
+ * con la cantidad más habitual. Si compró pocas veces, es su última compra.
+ */
+export function loDeSiempre(ventasCliente: Venta[], maximo = 10): { productoId: string; nombre: string; cantidad: number }[] {
+  const ultimas = [...ventasCliente].sort((a, b) => b.fecha.localeCompare(a.fecha)).slice(0, maximo)
+  if (ultimas.length === 0) return []
+  if (ultimas.length < 3) return ultimas[0].items.filter((i) => i.productoId).map((i) => ({ productoId: i.productoId, nombre: i.nombre, cantidad: i.cantidad }))
+  const veces = new Map<string, { nombre: string; cantidades: number[] }>()
+  for (const v of ultimas) {
+    const vistos = new Set<string>()
+    for (const i of v.items) {
+      if (!i.productoId || vistos.has(i.productoId)) continue
+      vistos.add(i.productoId)
+      const e = veces.get(i.productoId) ?? { nombre: i.nombre, cantidades: [] }
+      e.cantidades.push(i.cantidad)
+      veces.set(i.productoId, e)
+    }
+  }
+  const minimo = Math.ceil(ultimas.length / 2)
+  const resultado: { productoId: string; nombre: string; cantidad: number }[] = []
+  for (const [productoId, e] of veces) {
+    if (e.cantidades.length < minimo) continue
+    const orden = [...e.cantidades].sort((a, b) => a - b)
+    resultado.push({ productoId, nombre: e.nombre, cantidad: orden[Math.floor(orden.length / 2)] })
+  }
+  if (resultado.length === 0) return ultimas[0].items.filter((i) => i.productoId).map((i) => ({ productoId: i.productoId, nombre: i.nombre, cantidad: i.cantidad }))
+  return resultado.sort((a, b) => a.nombre.localeCompare(b.nombre))
+}
+
+/** Lista de precios en texto, agrupada por categoría, lista para WhatsApp. */
+export function textoListaPrecios(productos: Producto[], nombreBodega: string, emojiDe: (p: Producto) => string): string {
+  const activos = productos.filter((p) => p.activo).sort((a, b) => a.categoria.localeCompare(b.categoria) || a.nombre.localeCompare(b.nombre))
+  const lineas: string[] = [`📋 *${nombreBodega || 'Lista de precios'}*`, '']
+  let cat = ''
+  for (const p of activos) {
+    if (p.categoria !== cat) {
+      cat = p.categoria
+      lineas.push(`*${cat.toUpperCase()}*`)
+    }
+    lineas.push(`${emojiDe(p)} ${p.nombre} — S/ ${p.precioVenta.toFixed(2)}${p.unidad === 'kg' ? ' el kilo' : ''}`)
+    for (const q of p.paquetes ?? []) lineas.push(`    ${q.nombre} (x${q.cantidad}) — S/ ${q.precio.toFixed(2)}`)
+  }
+  lineas.push('', 'Precios sujetos a cambio. ¡Gracias por su preferencia!')
+  return lineas.join('\n')
+}

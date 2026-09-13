@@ -1,7 +1,9 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, type Cliente, type MetodoPago, type Producto } from '../db/db'
-import { METODOS, anularVenta, diasAtras, guardarCliente, lineaLibre, registrarVenta, totalCarrito, unidadesVendidas, type LineaCarrito } from '../lib/acciones'
+import { METODOS, anularVenta, diasAtras, guardarCliente, lineaLibre, lineaPaquete, loDeSiempre, precioLinea, registrarVenta, totalCarrito, unidadesVendidas, type LineaCarrito } from '../lib/acciones'
+import { MEDIOS_DIGITALES, leerMedios, type MedioDigital } from '../lib/pagos'
+import type { MedioPago, Venta } from '@kiosco/shared'
 import { hoyISO, redondear, soles } from '@kiosco/shared'
 import { Campo, Modal } from '../components/ui'
 import { Escaner } from '../components/Escaner'
@@ -22,6 +24,9 @@ export function Vender({ avisar }: { avisar: (m: string, accion?: AccionToast) =
   const [verCarrito, setVerCarrito] = useState(false)
   const [ventaRapida, setVentaRapida] = useState(false)
   const [escaneando, setEscaneando] = useState(false)
+  const [verClientes, setVerClientes] = useState(false)
+  const [clientePre, setClientePre] = useState<string | undefined>(undefined)
+  const medios = useLiveQuery(leerMedios, [])
 
   const activos = productos.filter((p) => p.activo)
   const vendidos = useMemo(() => unidadesVendidas(ventas30), [ventas30])
@@ -57,6 +62,37 @@ export function Vender({ avisar }: { avisar: (m: string, accion?: AccionToast) =
     if (busqueda) setBusqueda('')
   }
 
+  function agregarPaquete(p: Producto, i: number) {
+    const paq = p.paquetes?.[i]
+    if (!paq) return
+    setCarrito((c) => {
+      const l = lineaPaquete(p, paq)
+      const j = c.findIndex((x) => x.clave === l.clave)
+      if (j === -1) return [...c, l]
+      return c.map((x, k) => (k === j ? { ...x, cantidad: x.cantidad + paq.cantidad } : x))
+    })
+  }
+
+  function agregarLoDeSiempre(cliente: Cliente, items: { productoId: string; cantidad: number }[]) {
+    const nuevas: LineaCarrito[] = []
+    for (const it of items) {
+      const p = productos.find((x) => x.id === it.productoId && x.activo)
+      if (p) nuevas.push({ clave: `p-${p.id}`, producto: p, cantidad: it.cantidad })
+    }
+    setCarrito((c) => {
+      const copia = [...c]
+      for (const n of nuevas) {
+        const j = copia.findIndex((x) => x.clave === n.clave)
+        if (j === -1) copia.push(n)
+        else copia[j] = { ...copia[j], cantidad: redondear(copia[j].cantidad + n.cantidad) }
+      }
+      return copia
+    })
+    setClientePre(cliente.id)
+    setVerClientes(false)
+    avisar(nuevas.length ? `Lo de siempre de ${cliente.nombre} en el carrito` : `${cliente.nombre} aún no tiene compras habituales`)
+  }
+
   function cambiar(clave: string, delta: number) {
     setCarrito((c) => c.map((l) => (l.clave === clave ? { ...l, cantidad: redondear(l.cantidad + delta) } : l)).filter((l) => l.cantidad > 0))
   }
@@ -87,6 +123,7 @@ export function Vender({ avisar }: { avisar: (m: string, accion?: AccionToast) =
       setCarrito([])
       setCobrando(false)
       setVerCarrito(false)
+      setClientePre(undefined)
       void sonarCobro()
       const vuelto = metodo === 'efectivo' && pagoCon != null ? redondear(pagoCon - total) : 0
       const deshacer: AccionToast = {
@@ -120,6 +157,7 @@ export function Vender({ avisar }: { avisar: (m: string, accion?: AccionToast) =
         />
         <button className="btn-secundario btn-cuadrado" title="Escanear con la cámara" aria-label="Escanear con la cámara" onClick={() => setEscaneando(true)}>📷</button>
         <button className="btn-secundario btn-cuadrado" title="Venta rápida sin producto" aria-label="Venta rápida" onClick={() => setVentaRapida(true)}>S/</button>
+        <button className="btn-secundario btn-cuadrado" title="Lo de siempre de un cliente" aria-label="Clientes" onClick={() => setVerClientes(true)}>👤</button>
       </div>
       <div className="chips">
         {categorias.map((c) => (
@@ -131,17 +169,29 @@ export function Vender({ avisar }: { avisar: (m: string, accion?: AccionToast) =
 
       <div className="grilla-productos">
         {visibles.map((p) => {
-          const enCarrito = carrito.find((l) => l.clave === `p-${p.id}`)
+          const lineasDeEste = carrito.filter((l) => l.producto.id === p.id)
+          const enCarrito = lineasDeEste.length ? { cantidad: redondear(lineasDeEste.reduce((s, l) => s + l.cantidad, 0)) } : undefined
           const agotado = p.stock <= 0
           const bajo = !agotado && p.stock <= p.stockMinimo
           return (
-            <button key={p.id} className={'tarjeta-producto' + (enCarrito ? ' seleccionado' : '') + (agotado ? ' agotado' : '')} onClick={() => agregar(p)}>
-              <IconoProducto p={p} tam={40} />
-              <span className="tp-nombre">{p.nombre}</span>
-              <span className="tp-precio">{soles(p.precioVenta)}{p.unidad === 'kg' ? '/kg' : ''}</span>
-              <span className={'tp-stock' + (bajo ? ' bajo' : '') + (agotado ? ' cero' : '')}>{agotado ? 'Sin stock' : `${p.stock} ${p.unidad}`}</span>
-              {enCarrito && <span className="tp-badge">{enCarrito.cantidad}</span>}
-            </button>
+            <div key={p.id} className={'tarjeta-producto' + (enCarrito ? ' seleccionado' : '') + (agotado ? ' agotado' : '')}>
+              <button className="tp-principal" onClick={() => agregar(p)}>
+                <IconoProducto p={p} tam={40} />
+                <span className="tp-nombre">{p.nombre}</span>
+                <span className="tp-precio">{soles(p.precioVenta)}{p.unidad === 'kg' ? '/kg' : ''}</span>
+                <span className={'tp-stock' + (bajo ? ' bajo' : '') + (agotado ? ' cero' : '')}>{agotado ? 'Sin stock' : `${p.stock} ${p.unidad}`}</span>
+                {enCarrito && <span className="tp-badge">{enCarrito.cantidad}</span>}
+              </button>
+              {p.paquetes && p.paquetes.length > 0 && (
+                <div className="tp-paquetes">
+                  {p.paquetes.map((q, i) => (
+                    <button key={q.nombre} className="tp-paquete" onClick={() => agregarPaquete(p, i)} title={`${q.cantidad} unidades por ${soles(q.precio)}`} aria-label={`${q.nombre} ${soles(q.precio)}`}>
+                      📦 {q.nombre} {soles(q.precio)}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           )
         })}
         {visibles.length === 0 && (
@@ -165,15 +215,15 @@ export function Vender({ avisar }: { avisar: (m: string, accion?: AccionToast) =
             {carrito.map((l) => (
               <li key={l.clave}>
                 <div className="lc-info">
-                  <strong>{l.producto.nombre}</strong>
-                  <span>{soles(l.producto.precioVenta)} × {l.cantidad} {l.producto.unidad}</span>
+                  <strong>{l.producto.nombre}{l.etiqueta ? ` (${l.etiqueta})` : ''}</strong>
+                  <span>{soles(precioLinea(l))} × {l.cantidad} {l.producto.unidad}</span>
                 </div>
                 <div className="lc-controles">
                   <button className="btn-mini" onClick={() => cambiar(l.clave, l.producto.unidad === 'kg' ? -0.25 : -1)}>−</button>
                   <input type="number" inputMode="decimal" step={l.producto.unidad === 'kg' ? 0.05 : 1} value={l.cantidad} onChange={(e) => fijar(l.clave, Number(e.target.value))} />
                   <button className="btn-mini" onClick={() => cambiar(l.clave, l.producto.unidad === 'kg' ? 0.25 : 1)}>+</button>
                 </div>
-                <div className="lc-total">{soles(l.producto.precioVenta * l.cantidad)}</div>
+                <div className="lc-total">{soles(precioLinea(l) * l.cantidad)}</div>
               </li>
             ))}
           </ul>
@@ -194,7 +244,9 @@ export function Vender({ avisar }: { avisar: (m: string, accion?: AccionToast) =
 
       {escaneando && <Escaner onCodigo={alEscanear} onCerrar={() => setEscaneando(false)} />}
 
-      {cobrando && <Cobrar total={total} clientes={clientes} onCerrar={() => setCobrando(false)} onConfirmar={confirmar} />}
+      {verClientes && <LoDeSiempre clientes={clientes} onCerrar={() => setVerClientes(false)} onElegir={agregarLoDeSiempre} />}
+
+      {cobrando && <Cobrar total={total} clientes={clientes} clienteInicial={clientePre} medios={medios} onCerrar={() => setCobrando(false)} onConfirmar={confirmar} />}
     </div>
   )
 }
@@ -227,10 +279,13 @@ function VentaRapida({ onCerrar, onAgregar }: { onCerrar: () => void; onAgregar:
   )
 }
 
-function Cobrar({ total, clientes, onCerrar, onConfirmar }: { total: number; clientes: Cliente[]; onCerrar: () => void; onConfirmar: (m: MetodoPago, clienteId?: string, pagoCon?: number) => Promise<void> }) {
+function Cobrar({ total, clientes, clienteInicial, medios, onCerrar, onConfirmar }: { total: number; clientes: Cliente[]; clienteInicial?: string; medios?: Record<MedioDigital, MedioPago>; onCerrar: () => void; onConfirmar: (m: MetodoPago, clienteId?: string, pagoCon?: number) => Promise<void> }) {
   const [metodo, setMetodo] = useState<MetodoPago>('efectivo')
   const [pagoCon, setPagoCon] = useState<string>('')
-  const [clienteId, setClienteId] = useState<string | undefined>(clientes[0]?.id)
+  const [clienteId, setClienteId] = useState<string | undefined>(clienteInicial ?? clientes[0]?.id)
+  const [pantallaCompleta, setPantallaCompleta] = useState(false)
+  const medio = metodo === 'yape' || metodo === 'plin' ? medios?.[metodo] : undefined
+  const infoMedio = MEDIOS_DIGITALES.find((m) => m.id === metodo)
   const [nuevoCliente, setNuevoCliente] = useState('')
   const [guardando, setGuardando] = useState(false)
 
@@ -283,8 +338,34 @@ function Cobrar({ total, clientes, onCerrar, onConfirmar }: { total: number; cli
         </div>
       )}
 
-      {(metodo === 'yape' || metodo === 'plin' || metodo === 'tarjeta') && (
-        <p className="nota">Confirma que llegó la notificación de {metodo === 'tarjeta' ? 'la tarjeta' : metodo === 'yape' ? 'Yape' : 'Plin'} antes de entregar.</p>
+      {(metodo === 'yape' || metodo === 'plin') && (
+        <div className="bloque">
+          {medio?.qr || medio?.numero ? (
+            <div className="pago-digital" style={{ borderColor: infoMedio?.color }}>
+              {medio.qr && <img className="pago-qr" src={medio.qr} alt={`QR de ${infoMedio?.label}`} />}
+              <div className="pago-datos">
+                {medio.numero && <strong className="pago-numero">{medio.numero.replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3')}</strong>}
+                {medio.titular && <span>{medio.titular}</span>}
+                <span className="item-sub">{infoMedio?.label} · {soles(total)}</span>
+              </div>
+              <button className="btn-secundario ancho" onClick={() => setPantallaCompleta(true)}>📲 Mostrar al cliente en grande</button>
+            </div>
+          ) : (
+            <p className="nota">Sube tu QR y número de {infoMedio?.label} en <strong>Más → Cobros con Yape y Plin</strong> y aparecerán aquí para que el cliente escanee.</p>
+          )}
+          <p className="nota">Confirma que llegó la notificación de {infoMedio?.label} antes de entregar.</p>
+        </div>
+      )}
+      {metodo === 'tarjeta' && <p className="nota">Confirma que el POS aprobó el pago antes de entregar.</p>}
+      {pantallaCompleta && medio && (
+        <div className="pago-completo" style={{ background: infoMedio?.color }} onClick={() => setPantallaCompleta(false)} role="dialog" aria-label="QR para el cliente">
+          <span className="pago-completo-titulo">Paga con {infoMedio?.label}</span>
+          <strong className="pago-completo-monto">{soles(total)}</strong>
+          {medio.qr && <img src={medio.qr} alt="" />}
+          {medio.numero && <span className="pago-completo-numero">{medio.numero.replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3')}</span>}
+          {medio.titular && <span className="pago-completo-titular">{medio.titular}</span>}
+          <span className="pago-completo-pie">Toca para volver</span>
+        </div>
       )}
 
       {metodo === 'fiado' && (
@@ -310,3 +391,42 @@ function Cobrar({ total, clientes, onCerrar, onConfirmar }: { total: number; cli
   )
 }
 
+
+/** Elegir un cliente y cargar "lo de siempre": lo que se lleva en la mayoría de sus compras. */
+function LoDeSiempre({ clientes, onCerrar, onElegir }: { clientes: Cliente[]; onCerrar: () => void; onElegir: (c: Cliente, items: { productoId: string; nombre: string; cantidad: number }[]) => void }) {
+  const ventas = useLiveQuery(() => db.ventas.filter((v) => !!v.clienteId).toArray(), []) ?? []
+  const [busqueda, setBusqueda] = useState('')
+  const porCliente = useMemo(() => {
+    const m = new Map<string, Venta[]>()
+    for (const v of ventas) {
+      const arr = m.get(v.clienteId!) ?? []
+      arr.push(v)
+      m.set(v.clienteId!, arr)
+    }
+    return m
+  }, [ventas])
+  const visibles = clientes.filter((c) => !busqueda || c.nombre.toLowerCase().includes(busqueda.toLowerCase()))
+  return (
+    <Modal titulo="Lo de siempre" onCerrar={onCerrar}>
+      <p className="nota">Toca un cliente y su compra habitual entra al carrito. Se aprende sola de lo que fía.</p>
+      <div className="buscador"><input type="search" placeholder="Buscar cliente…" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} /></div>
+      {visibles.length === 0 && <p className="nota">No hay clientes todavía. Aparecen cuando fías desde Cobrar.</p>}
+      <ul className="lista">
+        {visibles.map((c) => {
+          const items = loDeSiempre(porCliente.get(c.id) ?? [])
+          return (
+            <li key={c.id} className="item">
+              <button className="item-cuerpo" onClick={() => onElegir(c, items)}>
+                <div className="item-titulo">
+                  <strong>{c.nombre}</strong>
+                  <span className="item-sub">{items.length ? items.map((i) => `${i.cantidad} ${i.nombre}`).join(', ') : 'Sin compras habituales aún'}</span>
+                </div>
+                <span className="item-precio">⭐</span>
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+    </Modal>
+  )
+}

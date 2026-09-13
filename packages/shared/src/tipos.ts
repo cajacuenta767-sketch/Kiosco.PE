@@ -23,6 +23,21 @@ export interface Producto extends Registro {
   creadoEn: string
   emoji?: string // ícono elegido a mano
   imagen?: string // foto pequeña (data URL, ~5 KB)
+  paquetes?: Paquete[] // precios por paquete: six-pack, docena, caja
+}
+
+/** Un precio alternativo por varias unidades del mismo producto. El stock siempre se lleva en unidades. */
+export interface Paquete {
+  nombre: string // "Six-pack", "Docena", "Caja x12"
+  cantidad: number // unidades que contiene
+  precio: number // precio del paquete completo
+}
+
+/** Medios de pago digitales de la bodega: número y foto del QR para mostrar al cliente. */
+export interface MedioPago {
+  numero?: string
+  titular?: string
+  qr?: string // data URL
 }
 
 export interface ItemVenta {

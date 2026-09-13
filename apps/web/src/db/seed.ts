@@ -35,9 +35,17 @@ const CATALOGO: Semilla[] = [
   ['Fósforos Inti', 'Otros', 0.5, 0.35, 30, 10, 'und'],
 ]
 
+const PAQUETES: Record<string, Producto['paquetes']> = {
+  'Cerveza Pilsen 630ml': [{ nombre: 'Six-pack', cantidad: 6, precio: 39 }, { nombre: 'Caja x12', cantidad: 12, precio: 76 }],
+  'Cerveza Cristal 630ml': [{ nombre: 'Six-pack', cantidad: 6, precio: 39 }],
+  'Galleta Soda Field': [{ nombre: 'Paquete x6', cantidad: 6, precio: 4.5 }],
+  'Agua San Luis 625ml': [{ nombre: 'Paquete x6', cantidad: 6, precio: 8 }],
+  'Pan Francés': [{ nombre: 'Media docena', cantidad: 6, precio: 1.7 }, { nombre: 'Docena', cantidad: 12, precio: 3.3 }],
+}
+
 function catalogoBase(fecha: string): Producto[] {
   return CATALOGO.map(([nombre, categoria, precioVenta, precioCompra, stock, stockMinimo, unidad]) => ({
-    id: uuid(), actualizadoEn: fecha, nombre, categoria, precioVenta, precioCompra, stock, stockMinimo, unidad, activo: true, creadoEn: fecha,
+    id: uuid(), actualizadoEn: fecha, nombre, categoria, precioVenta, precioCompra, stock, stockMinimo, unidad, activo: true, creadoEn: fecha, paquetes: PAQUETES[nombre],
   }))
 }
 

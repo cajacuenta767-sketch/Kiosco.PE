@@ -42,8 +42,8 @@ export async function encolarTodo() {
   await db.transaction('rw', db.tables, async () => {
     for (const tabla of Object.keys(TABLAS_SYNC) as Tabla[]) {
       if (tabla === 'config') {
-        const nombre = await db.config.get('nombreBodega')
-        if (nombre) await db.cola.add({ tabla, registroId: nombre.key, datos: nombre as unknown as Record<string, unknown>, borrado: false, actualizadoEn: ahoraISO() })
+        const filas = (await db.config.toArray()).filter((c) => c.key === 'nombreBodega' || c.key.startsWith('pago.'))
+        for (const c of filas) await db.cola.add({ tabla, registroId: c.key, datos: c as unknown as Record<string, unknown>, borrado: false, actualizadoEn: ahoraISO() })
         continue
       }
       const filas = (await TABLAS_SYNC[tabla]().toArray()) as { id: string; actualizadoEn: string }[]

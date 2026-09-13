@@ -4,7 +4,7 @@ const errores = []
 const shot = capturas()
 const stockDe = async (page, nombre) => (await page.getByRole('button', { name: new RegExp(nombre) }).locator('.tp-stock').innerText())
 async function vender(page, producto, metodo = 'efectivo') {
-  await page.getByRole('button', { name: 'Vender' }).click()
+  await page.getByRole('button', { name: 'Vender', exact: true }).click()
   await page.getByRole('button', { name: new RegExp(producto) }).click()
   await page.getByRole('button', { name: /^Cobrar/ }).click()
   if (metodo !== 'efectivo') await page.locator('.metodo', { hasText: metodo }).click()
@@ -12,7 +12,7 @@ async function vender(page, producto, metodo = 'efectivo') {
   await page.getByText(/Venta registrada/).waitFor()
 }
 async function alDia(page) {
-  await page.getByRole('button', { name: 'Más' }).click()
+  await page.getByRole('button', { name: 'Más', exact: true }).click()
   for (let intento = 1; ; intento++) {
     await page.getByRole('button', { name: /Sincronizar ahora/ }).click()
     try {
@@ -26,7 +26,7 @@ async function alDia(page) {
 
 // ── Celular A: activa la nube ──
 const A = await celular(browser, 'A', errores)
-await A.getByRole('button', { name: 'Más' }).click()
+await A.getByRole('button', { name: 'Más', exact: true }).click()
 await A.getByRole('button', { name: /Activar respaldo en la nube/ }).click()
 await A.getByPlaceholder(/Doña Carmen/).last().fill('Bodega San Martín')
 await shot(A, '30-activar-nube')
@@ -51,14 +51,14 @@ await A.getByRole('button', { name: 'Cerrar', exact: true }).click()
 
 // ── Celular B: se vincula con el código ──
 const B = await celular(browser, 'B', errores)
-await B.getByRole('button', { name: 'Más' }).click()
+await B.getByRole('button', { name: 'Más', exact: true }).click()
 await B.getByRole('button', { name: /segundo celular/ }).click()
 await B.getByPlaceholder('000000').fill(codigo)
 await shot(B, '33-vincular')
 await B.getByRole('button', { name: 'Vincular', exact: true }).click()
 await B.locator('.estado-nube strong', { hasText: 'Todo respaldado' }).waitFor({ timeout: 20000 })
 await alDia(B)
-await B.getByRole('button', { name: 'Vender' }).click()
+await B.getByRole('button', { name: 'Vender', exact: true }).click()
 await B.getByText('Inca Kola 500ml').waitFor()
 console.log('B: cabecera', await B.locator('.cabecera h1').innerText())
 const stockB = await stockDe(B, 'Inca Kola')
@@ -78,31 +78,31 @@ await alDia(B)
 
 // A baja lo de B
 await alDia(A)
-await A.getByRole('button', { name: 'Vender' }).click()
+await A.getByRole('button', { name: 'Vender', exact: true }).click()
 esperar((await stockDe(A, 'Inca Kola')) === '21 und', 'A ve la venta de B en el stock')
 console.log('A: Pilsen stock tras venta de B', await stockDe(A, 'Cerveza Pilsen'))
-await A.getByRole('button', { name: 'Caja' }).click()
+await A.getByRole('button', { name: 'Caja', exact: true }).click()
 console.log('A: caja', (await A.locator('.hero-cifra').innerText()).replace(/\n/g, ' '))
-await A.getByRole('button', { name: 'Fiados' }).click()
+await A.getByRole('button', { name: 'Fiados', exact: true }).click()
 await A.getByRole('button', { name: /Don Pepe/ }).waitFor()
 console.log('A: fiados', (await A.locator('.kpis').innerText()).replace(/\n/g, ' '))
 await shot(A, '35-a-fiados-desde-b')
 
 // Anulación en A se refleja en B
-await A.getByRole('button', { name: 'Caja' }).click()
+await A.getByRole('button', { name: 'Caja', exact: true }).click()
 await A.locator('.fila-simple.clic').first().click()
 await A.getByRole('button', { name: 'Anular venta' }).click()
 await A.getByText('Venta anulada').waitFor()
 await alDia(A)
 await alDia(B)
-await B.getByRole('button', { name: 'Caja' }).click()
+await B.getByRole('button', { name: 'Caja', exact: true }).click()
 await B.locator('.fila-simple.clic').first().waitFor()
 console.log('B: caja tras anulación en A', (await B.locator('.hero-cifra').innerText()).replace(/\n/g, ' '))
 esperar((await B.locator('.fila-simple.clic').count()) === 3, 'B ve 3 ventas tras la anulación hecha en A')
 
 // Estado final: ambos sin pendientes
 for (const [n, p] of [['A', A], ['B', B]]) {
-  await p.getByRole('button', { name: 'Más' }).click()
+  await p.getByRole('button', { name: 'Más', exact: true }).click()
   console.log(`${n}: estado`, await p.locator('.estado-nube strong').innerText())
 }
 esperar(await A.locator('.estado-nube strong').innerText() === 'Todo respaldado', 'A al día')

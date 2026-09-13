@@ -8,7 +8,7 @@ import type { Conexion } from './db/cliente.ts'
 import { rutasBodegas } from './rutas/bodegas.ts'
 import { rutasSync } from './rutas/sync.ts'
 
-export const VERSION = '0.5.0'
+export const VERSION = '0.6.0'
 
 export interface OpcionesApp {
   conexion: Conexion

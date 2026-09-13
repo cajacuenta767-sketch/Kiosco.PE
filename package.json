@@ -1,7 +1,7 @@
 {
   "name": "kiosco-pe",
   "private": true,
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Kiosco.PE — ventas, stock y fiados para bodegas del Perú. Monorepo: PWA + API + lógica compartida + Android (TWA).",
   "workspaces": [
     "packages/*",

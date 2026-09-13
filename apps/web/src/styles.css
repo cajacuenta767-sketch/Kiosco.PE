@@ -115,12 +115,13 @@ a { color: var(--primario); }
 /* Vender */
 .grilla-productos { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
 .tarjeta-producto {
-  position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left;
-  min-height: 92px; padding: 12px; border-radius: var(--radio);
+  position: relative; display: flex; flex-direction: column; gap: 0;
+  min-height: 92px; border-radius: var(--radio);
   background: var(--superficie); border: 2px solid transparent; box-shadow: var(--sombra);
   transition: transform 0.08s ease;
 }
-.tarjeta-producto:active { transform: scale(0.97); }
+.tp-principal { flex: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left; padding: 12px; width: 100%; border-radius: var(--radio); }
+.tp-principal:active { transform: scale(0.97); }
 .tarjeta-producto.seleccionado { border-color: var(--primario); background: var(--primario-suave); }
 .tarjeta-producto.agotado { opacity: 0.5; }
 .tp-nombre { font-weight: 600; font-size: 14px; line-height: 1.25; }
@@ -291,7 +292,7 @@ a { color: var(--primario); }
 
 /* Íconos e imágenes de producto */
 .icono-producto { display: inline-grid; place-items: center; border-radius: 10px; background: var(--fondo); object-fit: cover; flex-shrink: 0; line-height: 1; }
-.tarjeta-producto .icono-producto { margin-bottom: 2px; }
+.tp-principal .icono-producto { margin-bottom: 2px; }
 .imagen-producto { display: flex; align-items: center; gap: 12px; }
 .imagen-producto .icono-producto { width: 72px; height: 72px; border-radius: 14px; }
 .imagen-acciones { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
@@ -322,3 +323,45 @@ a { color: var(--primario); }
 [data-letra='grande'] .campo input, [data-letra='grande'] .campo select { font-size: 19px; }
 [data-letra='grande'] .nav-label { font-size: 13px; }
 [data-letra='grande'] .hero-cifra strong { font-size: 46px; }
+
+/* Paquetes */
+.tp-paquetes { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 10px 10px; }
+.tp-paquete { font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 999px; background: var(--acento-suave); color: #92400e; border: 1px solid rgba(245, 158, 11, 0.4); }
+.tp-paquete:active { transform: scale(0.95); }
+[data-tema='oscuro'] .tp-paquete { color: #fbbf24; }
+.fila-paquete { display: grid; grid-template-columns: 1.4fr 0.7fr 0.9fr auto; gap: 6px; align-items: center; }
+.fila-paquete input { width: 100%; min-width: 0; padding: 10px 10px; border: 1px solid var(--borde); border-radius: 10px; background: var(--superficie); font-size: 15px; }
+
+/* Cobro con Yape / Plin */
+.pago-digital { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px; border: 2px solid var(--borde); border-radius: var(--radio); background: var(--superficie); }
+.pago-qr { width: 100%; max-width: 220px; border-radius: 10px; }
+.pago-datos { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.pago-numero { font-size: 26px; letter-spacing: 0.04em; font-variant-numeric: tabular-nums; }
+.pago-completo { position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: #fff; padding: 24px; text-align: center; cursor: pointer; }
+.pago-completo img { width: min(78vw, 60vh); border-radius: 16px; background: #fff; padding: 8px; }
+.pago-completo-titulo { font-size: 20px; font-weight: 600; opacity: 0.9; }
+.pago-completo-monto { font-size: 44px; letter-spacing: -0.02em; }
+.pago-completo-numero { font-size: 32px; font-weight: 800; letter-spacing: 0.06em; font-variant-numeric: tabular-nums; }
+.pago-completo-titular { font-size: 18px; opacity: 0.9; }
+.pago-completo-pie { position: absolute; bottom: calc(24px + env(safe-area-inset-bottom)); font-size: 13px; opacity: 0.75; }
+.medio-pago { border: 2px solid var(--borde); border-radius: var(--radio); background: var(--superficie); padding: 10px 12px; display: flex; flex-direction: column; gap: 10px; }
+.medio-pago-cab { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; }
+.medio-pago-cab .item-sub { flex: 1; }
+.medio-pago-nombre { font-weight: 800; font-size: 17px; }
+.qr-mini { width: 72px; height: 72px; object-fit: contain; border-radius: 10px; background: #fff; border: 1px solid var(--borde); }
+
+/* Lista de precios */
+.lista-precios h2 { font-size: 20px; margin: 4px 0 8px; }
+.lista-precios table { width: 100%; border-collapse: collapse; }
+.lista-precios td { padding: 8px 4px; border-bottom: 1px solid var(--borde); font-size: 15px; vertical-align: middle; }
+.lista-precios td:first-child { display: flex; align-items: center; gap: 8px; }
+.lista-precios .lp-cat td { font-weight: 800; text-transform: uppercase; font-size: 12px; letter-spacing: 0.06em; color: var(--texto-suave); padding-top: 14px; border-bottom: 2px solid var(--borde); display: table-cell; }
+.lista-precios .lp-precio { text-align: right; font-weight: 700; white-space: nowrap; }
+.lista-precios .lp-paquete td { color: var(--texto-suave); font-size: 14px; }
+@media print {
+  body * { visibility: hidden; }
+  .imprimible, .imprimible * { visibility: visible; }
+  .imprimible { position: fixed; inset: 0; padding: 16px; background: #fff; color: #000; overflow: visible; }
+  .modal { max-height: none; overflow: visible; }
+  .lista-precios td { font-size: 14pt; padding: 6pt 4pt; }
+}

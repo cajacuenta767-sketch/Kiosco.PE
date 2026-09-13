@@ -1,14 +1,26 @@
 import { db, type CategoriaGasto, type CierreCaja, type Cliente, type Gasto, type ItemVenta, type MetodoPago, type Producto, type Venta } from '../db/db'
+import type { Paquete } from '@kiosco/shared'
 import { borrar, poner } from '../db/repo'
 import { ahoraISO, hoyISO, redondear, uuid } from '@kiosco/shared'
 
-export { CATEGORIAS, CATEGORIAS_GASTO, METODOS, deudaDe, diasAtras, pedidoSugerido, resumirVentas, textoPedido, unidadesVendidas } from '@kiosco/shared'
+export { CATEGORIAS, CATEGORIAS_GASTO, METODOS, deudaDe, diasAtras, loDeSiempre, pedidoSugerido, resumirVentas, textoListaPrecios, textoPedido, unidadesVendidas } from '@kiosco/shared'
 export type { LineaPedido, ResumenDia } from '@kiosco/shared'
 
 export interface LineaCarrito {
   clave: string
   producto: Producto
-  cantidad: number
+  cantidad: number // unidades (un six-pack son 6)
+  precio?: number // precio unitario distinto al del producto (paquetes)
+  etiqueta?: string // "Six-pack"
+}
+
+/** Línea para un paquete: descuenta `cantidad` unidades del stock y cobra el precio del paquete. */
+export function lineaPaquete(p: Producto, paq: Paquete): LineaCarrito {
+  return { clave: `p-${p.id}-paq-${paq.nombre}`, producto: p, cantidad: paq.cantidad, precio: redondear(paq.precio / paq.cantidad), etiqueta: paq.nombre }
+}
+
+export function precioLinea(l: LineaCarrito): number {
+  return l.precio ?? l.producto.precioVenta
 }
 
 /** Crea una línea de venta rápida: un monto libre que no está en el catálogo. */
@@ -30,7 +42,7 @@ export function lineaLibre(monto: number, descripcion: string, costo = 0): Linea
 }
 
 export function totalCarrito(lineas: LineaCarrito[]): number {
-  return redondear(lineas.reduce((s, l) => s + l.producto.precioVenta * l.cantidad, 0))
+  return redondear(lineas.reduce((s, l) => s + precioLinea(l) * l.cantidad, 0))
 }
 
 const TABLAS_VENTA = () => [db.ventas, db.productos, db.movimientosStock, db.movimientosFiado, db.cola]
@@ -42,7 +54,7 @@ export async function registrarVenta(opts: { lineas: LineaCarrito[]; metodoPago:
   if (metodoPago === 'fiado' && !clienteId) throw new Error('Elige a quién le fías')
 
   const fecha = ahoraISO()
-  const items: ItemVenta[] = lineas.map((l) => ({ productoId: l.producto.id, nombre: l.producto.nombre, cantidad: l.cantidad, precio: l.producto.precioVenta, costo: l.producto.precioCompra }))
+  const items: ItemVenta[] = lineas.map((l) => ({ productoId: l.producto.id, nombre: l.etiqueta ? `${l.producto.nombre} (${l.etiqueta})` : l.producto.nombre, cantidad: l.cantidad, precio: precioLinea(l), costo: l.producto.precioCompra }))
   const total = totalCarrito(lineas)
   const costoTotal = redondear(items.reduce((s, i) => s + i.costo * i.cantidad, 0))
   const vuelto = metodoPago === 'efectivo' && pagoCon != null ? redondear(pagoCon - total) : undefined

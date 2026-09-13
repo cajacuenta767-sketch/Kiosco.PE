@@ -27,7 +27,7 @@ Mejoras que casi seguro saldrán de ahí y ya están pensadas:
 - **Botón "venta rápida sin producto":** escribir S/ 2.50 y cobrar, para lo que no está en el catálogo. Sin esto, el bodeguero
   deja de usar la app en hora punta.
 - **Favoritos / más vendidos primero** en la cuadrícula de Vender.
-- **Precios múltiples:** unidad y paquete (una Inca Kola a S/ 3, el six-pack a S/ 16). Pendiente.
+- ~~Precios múltiples: unidad y paquete~~ ✅ (v0.6).
 - **Modo oscuro** para bodegas que atienden de noche.
 
 ## Fase 2 · Lo que hace que se quede (1 a 2 meses) — nube y multi-celular listos ✅

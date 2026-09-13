@@ -6,6 +6,9 @@ import { Nube } from './Nube'
 import { sembrarDemo } from '../db/seed'
 import { PIN_VALIDO, cambiarModo, guardarPin, hayPin, verificarPin } from '../lib/pin'
 import { Modal } from '../components/ui'
+import { MEDIOS_DIGITALES, guardarMedio, leerMedios, type MedioDigital } from '../lib/pagos'
+import { ajustarImagen } from '../lib/imagen'
+import type { MedioPago } from '@kiosco/shared'
 import { sembrarSiVacio } from '../db/seed'
 import { Campo } from '../components/ui'
 
@@ -83,6 +86,10 @@ export function Ajustes({ avisar, ayudante = false }: { avisar: (m: string) => v
         </div>
       </Campo>
 
+      <h3 className="subtitulo">Cobros con Yape y Plin</h3>
+      <p className="nota">Sube la captura de tu QR y escribe tu número. Al cobrar con Yape o Plin, se lo muestras al cliente en grande para que escanee.</p>
+      <MediosPago avisar={avisar} />
+
       <Nube avisar={avisar} nombreBodega={nombreGuardado} />
 
       <h3 className="subtitulo">Modo ayudante</h3>
@@ -131,7 +138,7 @@ export function Ajustes({ avisar, ayudante = false }: { avisar: (m: string) => v
       <h3 className="subtitulo">Consejo</h3>
       <p className="nota">Descarga un respaldo cada semana y guárdalo en tu WhatsApp o Google Drive. Si cambias de celular, restáuralo y sigues donde te quedaste.</p>
 
-      <p className="pie">Kiosco.PE v0.5 · Hecho para las bodegas del Perú 🇵🇪</p>
+      <p className="pie">Kiosco.PE v0.6 · Hecho para las bodegas del Perú 🇵🇪</p>
       {modalPin === 'crear' && <CrearPin onCerrar={() => setModalPin(null)} onOk={async () => { setModalPin(null); await cambiarModo('ayudante'); avisar('PIN guardado · Modo ayudante activado') }} />}
     </div>
   )
@@ -171,5 +178,65 @@ function PedirPin({ titulo, onCerrar, onOk }: { titulo: string; onCerrar: () => 
       {error && <p className="texto-peligro">{error}</p>}
       <button className="btn-primario grande ancho" disabled={pin.length < 4} onClick={comprobar}>Entrar</button>
     </Modal>
+  )
+}
+
+function MediosPago({ avisar }: { avisar: (m: string) => void }) {
+  const medios = useLiveQuery(leerMedios, [])
+  if (!medios) return null
+  return (
+    <div className="acciones-col">
+      {MEDIOS_DIGITALES.map((m) => (
+        <MedioPagoForm key={m.id} id={m.id} label={m.label} color={m.color} medio={medios[m.id]} avisar={avisar} />
+      ))}
+    </div>
+  )
+}
+
+function MedioPagoForm({ id, label, color, medio, avisar }: { id: MedioDigital; label: string; color: string; medio: MedioPago; avisar: (m: string) => void }) {
+  const [numero, setNumero] = useState(medio.numero ?? '')
+  const [titular, setTitular] = useState(medio.titular ?? '')
+  const [qr, setQr] = useState(medio.qr ?? '')
+  const [abierto, setAbierto] = useState(false)
+  const qrRef = useRef<HTMLInputElement>(null)
+  const configurado = Boolean(medio.numero || medio.qr)
+  useEffect(() => { setNumero(medio.numero ?? ''); setTitular(medio.titular ?? ''); setQr(medio.qr ?? '') }, [medio.numero, medio.titular, medio.qr])
+  const cambiado = numero !== (medio.numero ?? '') || titular !== (medio.titular ?? '') || qr !== (medio.qr ?? '')
+
+  async function guardar() {
+    if (numero && !/^\d{9}$/.test(numero)) return avisar('El número debe tener 9 dígitos')
+    await guardarMedio(id, { numero, titular, qr })
+    setAbierto(false)
+    avisar(`${label} guardado`)
+  }
+
+  return (
+    <div className="medio-pago" style={{ borderColor: color }}>
+      <button className="medio-pago-cab" onClick={() => setAbierto((v) => !v)} aria-expanded={abierto}>
+        <span className="medio-pago-nombre" style={{ color }}>{label}</span>
+        <span className="item-sub">{configurado ? `${medio.numero ?? ''}${medio.qr ? ' · QR listo' : ' · sin QR'}` : 'Sin configurar'}</span>
+        <span>{abierto ? '▴' : '▾'}</span>
+      </button>
+      {abierto && (
+        <div className="bloque">
+          <div className="imagen-producto">
+            {qr ? <img className="qr-mini" src={qr} alt={`QR de ${label}`} /> : <span className="icono-producto emoji" style={{ width: 72, height: 72, fontSize: 36 }}>▦</span>}
+            <div className="imagen-acciones">
+              <button type="button" className="btn-secundario" onClick={() => qrRef.current?.click()}>🖼️ {qr ? 'Cambiar QR' : 'Subir imagen del QR'}</button>
+              {qr && <button type="button" className="btn-enlace" onClick={() => setQr('')}>Quitar QR</button>}
+            </div>
+            <input ref={qrRef} type="file" accept="image/*" hidden onChange={async (e) => { const a = e.target.files?.[0]; if (a) { try { setQr(await ajustarImagen(a)) } catch { avisar('No se pudo leer la imagen') } } e.target.value = '' }} />
+          </div>
+          <p className="nota">En {label}, entra a tu QR, toma captura de pantalla y súbela aquí.</p>
+          <Campo label={`Número de ${label}`} ayuda="9 dígitos">
+            <input type="tel" inputMode="numeric" maxLength={9} placeholder="9xxxxxxxx" value={numero} onChange={(e) => setNumero(e.target.value.replace(/\D/g, ''))} />
+          </Campo>
+          <Campo label="Nombre que aparece (opcional)">
+            <input type="text" placeholder="Ej. Carmen R." value={titular} onChange={(e) => setTitular(e.target.value)} />
+          </Campo>
+          <button className="btn-primario ancho" disabled={!cambiado} onClick={guardar}>Guardar {label}</button>
+        </div>
+      )}
+    </div>
   )
 }

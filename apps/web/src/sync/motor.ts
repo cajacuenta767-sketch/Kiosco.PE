@@ -167,7 +167,8 @@ async function aplicar(cambios: CambioRecibido[]) {
       const tabla = TABLAS_SYNC[c.tabla as Tabla]?.()
       if (!tabla) continue
       if (c.tabla === 'config') {
-        if (!c.borrado && c.registroId === 'nombreBodega' && c.datos) await db.config.put({ key: 'nombreBodega', value: String(c.datos.value ?? '') })
+        const compartida = c.registroId === 'nombreBodega' || c.registroId.startsWith('pago.')
+        if (!c.borrado && compartida && c.datos) await db.config.put({ key: c.registroId, value: String(c.datos.value ?? '') })
         continue
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

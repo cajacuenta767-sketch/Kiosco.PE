@@ -6,18 +6,18 @@
 > El bodeguero no sabe cuánto gana. No sabe qué se le está acabando hasta que un cliente se lo pide. Y el cuaderno de fiados
 > se pierde, se moja o se olvida. Kiosco.PE reemplaza el cuaderno con algo tan simple como WhatsApp.
 
-## Qué hace hoy (v0.5)
+## Qué hace hoy (v0.6)
 
 | Módulo | Qué resuelve |
 |---|---|
 | **Bienvenida** | Primer arranque: nombre de la bodega y elegir entre catálogo de ejemplo, bodega de ejemplo con dos semanas de movimiento, empezar de cero o vincular un celular que ya usa Kiosco.PE. |
-| **Vender** | Cobrar en 3 toques. Cada producto con su dibujo o foto, ordenados por lo más vendido, búsqueda, escáner de código de barras con la cámara, venta rápida sin producto, calculadora de vuelto, Efectivo / Yape / Plin / Tarjeta / Fiado. Deshacer la última venta con un toque y sonido al cobrar. |
-| **Stock** | Qué tienes, qué se acaba, qué está agotado. Ingreso de mercadería, ganancia por producto, historial de movimientos de cada producto y **pedido sugerido** al proveedor según la rotación de 14 días, listo para WhatsApp. |
+| **Vender** | Cobrar en 3 toques. Cada producto con su dibujo o foto, ordenados por lo más vendido, búsqueda, escáner de código de barras con la cámara, venta rápida sin producto, calculadora de vuelto, Efectivo / Yape / Plin / Tarjeta / Fiado. Precios por paquete (six-pack, docena). "Lo de siempre" de cada cliente en un toque. Al cobrar con Yape o Plin, el QR y el número de la bodega en grande para que el cliente escanee. Deshacer la última venta y sonido al cobrar. |
+| **Stock** | Qué tienes, qué se acaba, qué está agotado. Ingreso de mercadería, ganancia por producto, historial de movimientos de cada producto, **lista de precios** con dibujos para WhatsApp o imprimir, y **pedido sugerido** al proveedor según la rotación de 14 días. |
 | **Fiados** | El cuaderno de fiados que no se pierde. Deuda por cliente, abonos, historial, fecha de pago acordada con aviso de vencimiento y recordatorio por WhatsApp con un toque. |
 | **Caja** | Cuánto vendiste y cuánto ganaste hoy (neto de gastos), por método de pago. Gastos del día. Últimos 7 días. Resumen del mes. Comprobante de venta por WhatsApp. Cierre de caja con cuadre de efectivo. |
 | **Nube** | Opcional. Respaldo automático con cuenta sin contraseña y un segundo celular vinculado con un código de 6 dígitos. Dos personas atienden la misma bodega y el stock cuadra. |
 | **Fácil de usar** | Botón "?" con 4 pasos ilustrados en cada pantalla, letra grande, y modo ayudante con PIN para que otra persona venda sin ver ganancias ni cambiar precios. |
-| **Más** | Nombre de la bodega, modo oscuro, respaldo y restauración de datos, catálogo o bodega de ejemplo. |
+| **Más** | Nombre de la bodega, QR y número de Yape y Plin, modo oscuro, respaldo y restauración de datos, catálogo o bodega de ejemplo. |
 
 Todo se guarda en el propio celular (IndexedDB). No necesita cuenta ni internet, y se instala como app desde el navegador (PWA). La nube es opcional y se activa con un toque.
 

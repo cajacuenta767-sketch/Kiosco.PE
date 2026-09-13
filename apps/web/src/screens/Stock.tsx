@@ -1,7 +1,8 @@
-import { useMemo, useRef, useState } from 'react'
+import { Fragment, useMemo, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, type Producto, type Unidad } from '../db/db'
-import { CATEGORIAS, desactivarProducto, diasAtras, guardarProducto, ingresarMercaderia, pedidoSugerido, textoPedido } from '../lib/acciones'
+import { CATEGORIAS, desactivarProducto, diasAtras, guardarProducto, ingresarMercaderia, pedidoSugerido, textoListaPrecios, textoPedido } from '../lib/acciones'
+import type { Paquete } from '@kiosco/shared'
 import { fechaCorta, hora, hoyISO, redondear, soles } from '@kiosco/shared'
 import { Campo, Modal, Vacio } from '../components/ui'
 import { Escaner } from '../components/Escaner'
@@ -18,6 +19,7 @@ export function Stock({ avisar, ayudante = false }: { avisar: (m: string) => voi
   const [editando, setEditando] = useState<Producto | 'nuevo' | null>(null)
   const [ingresando, setIngresando] = useState<Producto | null>(null)
   const [pedido, setPedido] = useState(false)
+  const [listaPrecios, setListaPrecios] = useState(false)
   const ventas14 = useLiveQuery(() => db.ventas.where('dia').between(diasAtras(14), hoyISO(), true, true).toArray(), []) ?? []
   const nombreBodega = useLiveQuery(() => db.config.get('nombreBodega'), [])?.value ?? ''
   const lineasPedido = useMemo(() => pedidoSugerido(productos, ventas14), [productos, ventas14])
@@ -57,6 +59,9 @@ export function Stock({ avisar, ayudante = false }: { avisar: (m: string) => voi
       <p className="nota">
         Tienes <strong>{soles(valorInventario)}</strong> invertidos en mercadería, que vendidos serían <strong>{soles(valorVenta)}</strong>.
       </p>
+      {!ayudante && activos.length > 0 && (
+        <button className="btn-secundario ancho" onClick={() => setListaPrecios(true)}>🧾 Lista de precios para WhatsApp o imprimir</button>
+      )}
       {lineasPedido.length > 0 && (
         <button className="banner-accion" onClick={() => setPedido(true)}>
           <span>📋 <strong>{lineasPedido.length} {lineasPedido.length === 1 ? 'producto' : 'productos'}</strong> por reponer · pedido sugerido {soles(lineasPedido.reduce((s, l) => s + l.costo, 0))}</span>
@@ -119,6 +124,7 @@ export function Stock({ avisar, ayudante = false }: { avisar: (m: string) => voi
       {ingresando && (
         <Ingreso producto={ingresando} onCerrar={() => setIngresando(null)} onHecho={(m) => { setIngresando(null); avisar(m) }} />
       )}
+      {listaPrecios && <ListaPrecios productos={activos} nombreBodega={nombreBodega} onCerrar={() => setListaPrecios(false)} avisar={avisar} />}
       {pedido && (
         <Modal titulo="Pedido sugerido" onCerrar={() => setPedido(false)}>
           <p className="nota">Calculado con lo vendido en los últimos 14 días: cubre una semana y nunca baja de tu mínimo.</p>
@@ -157,6 +163,7 @@ function FormProducto({ producto, onCerrar, onGuardado }: { producto: Producto |
     stockMinimo: producto ? String(producto.stockMinimo) : '5',
     unidad: (producto?.unidad ?? 'und') as Unidad,
   })
+  const [paquetes, setPaquetes] = useState<{ nombre: string; cantidad: string; precio: string }[]>((producto?.paquetes ?? []).map((q) => ({ nombre: q.nombre, cantidad: String(q.cantidad), precio: String(q.precio) })))
   const [emoji, setEmoji] = useState(producto?.emoji ?? '')
   const [imagen, setImagen] = useState(producto?.imagen ?? '')
   const [elegirIcono, setElegirIcono] = useState(false)
@@ -169,8 +176,13 @@ function FormProducto({ producto, onCerrar, onGuardado }: { producto: Producto |
   const compra = Number(f.precioCompra) || 0
   const ganancia = redondear(venta - compra)
 
+  const paquetesValidos: Paquete[] = paquetes
+    .map((q) => ({ nombre: q.nombre.trim(), cantidad: Number(q.cantidad) || 0, precio: Number(q.precio) || 0 }))
+    .filter((q) => q.nombre && q.cantidad > 1 && q.precio > 0)
+
   async function guardar() {
     if (!f.nombre.trim()) return setError('Ponle un nombre al producto')
+    if (paquetes.some((q) => (q.nombre.trim() || q.cantidad || q.precio) && !(q.nombre.trim() && Number(q.cantidad) > 1 && Number(q.precio) > 0))) return setError('Cada paquete necesita nombre, cuántas unidades trae (más de 1) y su precio')
     if (venta <= 0) return setError('El precio de venta debe ser mayor a cero')
     if (compra > venta) return setError('Ojo: el precio de compra es mayor al de venta. Estarías perdiendo plata.')
     const datos = {
@@ -185,6 +197,7 @@ function FormProducto({ producto, onCerrar, onGuardado }: { producto: Producto |
       activo: true,
       emoji: emoji || undefined,
       imagen: imagen || undefined,
+      paquetes: paquetesValidos.length ? paquetesValidos : undefined,
     }
     await guardarProducto(datos, producto ?? undefined)
     onGuardado(producto ? 'Producto actualizado' : 'Producto agregado')
@@ -253,6 +266,23 @@ function FormProducto({ producto, onCerrar, onGuardado }: { producto: Producto |
           <input type="number" inputMode="decimal" min={0} value={f.stockMinimo} onChange={(e) => set('stockMinimo', e.target.value)} />
         </Campo>
       </div>
+      {f.unidad === 'und' && (
+        <div className="bloque">
+          <span className="campo-label">Precios por paquete (opcional)</span>
+          {paquetes.map((q, i) => (
+            <div key={i} className="fila-paquete">
+              <input type="text" placeholder="Six-pack" value={q.nombre} onChange={(e) => setPaquetes((a) => a.map((x, j) => (j === i ? { ...x, nombre: e.target.value } : x)))} aria-label="Nombre del paquete" />
+              <input type="number" inputMode="numeric" placeholder="6" min={2} value={q.cantidad} onChange={(e) => setPaquetes((a) => a.map((x, j) => (j === i ? { ...x, cantidad: e.target.value } : x)))} aria-label="Unidades por paquete" />
+              <input type="number" inputMode="decimal" placeholder="S/" step="0.1" min={0} value={q.precio} onChange={(e) => setPaquetes((a) => a.map((x, j) => (j === i ? { ...x, precio: e.target.value } : x)))} aria-label="Precio del paquete" />
+              <button type="button" className="btn-icono chico" aria-label="Quitar paquete" onClick={() => setPaquetes((a) => a.filter((_, j) => j !== i))}>✕</button>
+            </div>
+          ))}
+          {paquetes.length < 3 && <button type="button" className="btn-enlace" onClick={() => setPaquetes((a) => [...a, { nombre: '', cantidad: '', precio: '' }])}>+ Agregar paquete (six-pack, docena, caja)</button>}
+          {paquetesValidos.length > 0 && venta > 0 && (
+            <p className="nota">{paquetesValidos.map((q) => `${q.nombre}: ${soles(q.precio)} (${soles(q.precio / q.cantidad)} c/u, ${q.precio / q.cantidad < venta ? 'más barato' : 'igual o más caro'} que suelto)`).join(' · ')}</p>
+          )}
+        </div>
+      )}
       <Campo label="Código de barras (opcional)" ayuda="Escanéalo con la cámara o un lector">
         <div className="buscador con-boton">
           <input type="text" inputMode="numeric" value={f.codigoBarras} onChange={(e) => set('codigoBarras', e.target.value)} />
@@ -312,5 +342,45 @@ function Kardex({ productoId, unidad }: { productoId: string; unidad: Unidad }) 
         ))}
       </ul>
     </>
+  )
+}
+
+/** Lista de precios con dibujos: para mandar por WhatsApp o pegar impresa en la pared. */
+function ListaPrecios({ productos, nombreBodega, onCerrar, avisar }: { productos: Producto[]; nombreBodega: string; onCerrar: () => void; avisar: (m: string) => void }) {
+  const texto = textoListaPrecios(productos, nombreBodega, (p) => p.emoji || emojiPara(p.nombre, p.categoria))
+  const orden = [...productos].sort((a, b) => a.categoria.localeCompare(b.categoria) || a.nombre.localeCompare(b.nombre))
+  let cat = ''
+  return (
+    <Modal titulo="Lista de precios" onCerrar={onCerrar}>
+      <div className="acciones">
+        <a className="btn-whatsapp" style={{ flex: 1, marginTop: 0 }} href={`https://wa.me/?text=${encodeURIComponent(texto)}`} target="_blank" rel="noreferrer">💬 WhatsApp</a>
+        <button className="btn-secundario" onClick={() => window.print()}>🖨️ Imprimir</button>
+        <button className="btn-secundario" onClick={async () => { try { await navigator.clipboard.writeText(texto); avisar('Lista copiada') } catch { avisar('No se pudo copiar') } }}>Copiar</button>
+      </div>
+      <div className="imprimible lista-precios">
+        <h2>{nombreBodega || 'Lista de precios'}</h2>
+        <table>
+          <tbody>
+            {orden.map((p) => {
+              const nuevaCat = p.categoria !== cat
+              cat = p.categoria
+              return (
+                <Fragment key={p.id}>
+                  {nuevaCat && <tr className="lp-cat"><td colSpan={2}>{p.categoria}</td></tr>}
+                  <tr>
+                    <td><IconoProducto p={p} tam={28} /> {p.nombre}{p.unidad === 'kg' ? ' (kilo)' : ''}</td>
+                    <td className="lp-precio">{soles(p.precioVenta)}</td>
+                  </tr>
+                  {(p.paquetes ?? []).map((q) => (
+                    <tr key={q.nombre} className="lp-paquete"><td>　{q.nombre} (x{q.cantidad})</td><td className="lp-precio">{soles(q.precio)}</td></tr>
+                  ))}
+                </Fragment>
+              )
+            })}
+          </tbody>
+        </table>
+        <p className="nota">Precios sujetos a cambio. ¡Gracias por su preferencia!</p>
+      </div>
+    </Modal>
   )
 }
