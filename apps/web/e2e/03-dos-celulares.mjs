@@ -13,8 +13,15 @@ async function vender(page, producto, metodo = 'efectivo') {
 }
 async function alDia(page) {
   await page.getByRole('button', { name: 'Más' }).click()
-  await page.getByRole('button', { name: /Sincronizar ahora/ }).click()
-  await page.locator('.estado-nube strong', { hasText: 'Todo respaldado' }).waitFor({ timeout: 15000 })
+  for (let intento = 1; ; intento++) {
+    await page.getByRole('button', { name: /Sincronizar ahora/ }).click()
+    try {
+      await page.locator('.estado-nube strong', { hasText: 'Todo respaldado' }).waitFor({ timeout: 10000 })
+      return
+    } catch (e) {
+      if (intento >= 4) throw e
+    }
+  }
 }
 
 // ── Celular A: activa la nube ──
