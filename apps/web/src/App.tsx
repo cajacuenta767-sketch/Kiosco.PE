@@ -14,7 +14,7 @@ import { Ajustes } from './screens/Ajustes'
 import { Bienvenida } from './screens/Bienvenida'
 import { Bloqueo } from './screens/Bloqueo'
 import { cambiarModo } from './lib/pin'
-import { hoyISO } from '@kiosco/shared'
+import { hoyISO, soles } from '@sencillo/shared'
 import { deudaDe } from './lib/acciones'
 
 type Tab = 'vender' | 'stock' | 'fiados' | 'caja' | 'ajustes'
@@ -71,13 +71,21 @@ export default function App() {
   }, [letra])
   useEffect(() => {
     document.documentElement.dataset.tema = tema
-    const color = tema === 'oscuro' || (tema === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches) ? '#0b5d57' : '#0f766e'
+    const color = tema === 'oscuro' || (tema === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches) ? '#9a3412' : '#c2410c'
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', color)
   }, [tema])
   const bajos = useLiveQuery(async () => (await db.productos.toArray()).filter((p) => p.activo && p.stock <= p.stockMinimo).length, []) ?? 0
   const ventasHoy = useLiveQuery(() => db.ventas.where('dia').equals(hoyISO()).toArray(), []) ?? []
   const movs = useLiveQuery(() => db.movimientosFiado.toArray(), []) ?? []
   const totalHoy = ventasHoy.reduce((s, v) => s + v.total, 0)
+  const cierreHoy = useLiveQuery(() => db.cierres.where('dia').equals(hoyISO()).first(), [])
+  const avisoVisto = useLiveQuery(() => db.config.get('avisoCierre'), [])?.value
+  const [ahora, setAhora] = useState(() => new Date())
+  useEffect(() => {
+    const t = window.setInterval(() => setAhora(new Date()), 60_000)
+    return () => window.clearInterval(t)
+  }, [])
+  const mostrarAvisoCierre = !ayudante && ahora.getHours() >= 20 && ventasHoy.length > 0 && !cierreHoy && avisoVisto !== hoyISO() && tab !== 'caja'
   const deudaTotal = Math.max(0, deudaDe(movs))
 
   const badges: Partial<Record<Tab, string>> = {
@@ -94,7 +102,7 @@ export default function App() {
     <div className="app">
       <header className="cabecera">
         <div>
-          <h1>{nombre || 'Kiosco.PE'}</h1>
+          <h1>{nombre || 'Sencillo'}</h1>
           <span className="cab-sub">{TABS.find((t) => t.id === tab)?.label}{ayudante ? ' · Modo ayudante' : ''}</span>
         </div>
         <div className="cab-derecha">
@@ -108,6 +116,15 @@ export default function App() {
         </div>
       </header>
 
+      {mostrarAvisoCierre && (
+        <div className="aviso-cierre" role="status">
+          <span>🌙 Ya es de noche y vendiste {soles(totalHoy)}. ¿Cerramos la caja?</span>
+          <div className="aviso-cierre-acciones">
+            <button className="btn-primario" onClick={() => setTab('caja')}>Cerrar caja</button>
+            <button className="btn-enlace" onClick={() => setConfig('avisoCierre', hoyISO())}>Más tarde</button>
+          </div>
+        </div>
+      )}
       <main className="contenido">
         {tab === 'vender' && <Vender avisar={avisar} />}
         {tab === 'stock' && <Stock avisar={avisar} ayudante={ayudante} />}

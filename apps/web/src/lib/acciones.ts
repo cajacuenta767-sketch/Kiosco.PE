@@ -1,10 +1,10 @@
 import { db, type CategoriaGasto, type CierreCaja, type Cliente, type Gasto, type ItemVenta, type MetodoPago, type Producto, type Venta } from '../db/db'
-import type { Paquete } from '@kiosco/shared'
+import type { Paquete } from '@sencillo/shared'
 import { borrar, poner } from '../db/repo'
-import { ahoraISO, hoyISO, redondear, uuid } from '@kiosco/shared'
+import { ahoraISO, hoyISO, redondear, uuid } from '@sencillo/shared'
 
-export { CATEGORIAS, CATEGORIAS_GASTO, METODOS, deudaDe, diasAtras, loDeSiempre, pedidoSugerido, resumirVentas, textoListaPrecios, textoPedido, unidadesVendidas } from '@kiosco/shared'
-export type { LineaPedido, ResumenDia } from '@kiosco/shared'
+export { CATEGORIAS, CATEGORIAS_GASTO, METODOS, deudaDe, diasAtras, loDeSiempre, lotesPorVencer, pedidoSugerido, resumirVentas, textoListaPrecios, textoPedido, textoResumenSemana, unidadesVendidas } from '@sencillo/shared'
+export type { LineaPedido, ResumenDia } from '@sencillo/shared'
 
 export interface LineaCarrito {
   clave: string
@@ -100,16 +100,24 @@ export async function anularVenta(v: Venta) {
 }
 
 /** Cambia el stock de un producto y deja el movimiento. Debe llamarse dentro de una transacción. */
-async function moverStock(productoId: string, cantidad: number, tipo: 'venta' | 'ingreso' | 'ajuste' | 'merma', nota: string, fecha = ahoraISO(), cambiosProducto: Partial<Producto> = {}) {
+async function moverStock(productoId: string, cantidad: number, tipo: 'venta' | 'ingreso' | 'ajuste' | 'merma', nota: string, fecha = ahoraISO(), cambiosProducto: Partial<Producto> = {}, vence?: string) {
   const p = await db.productos.get(productoId)
   if (!p) return
   await poner('productos', { ...p, ...cambiosProducto, stock: redondear(p.stock + cantidad), actualizadoEn: fecha })
-  await poner('movimientosStock', { id: uuid(), actualizadoEn: fecha, productoId, fecha, tipo, cantidad, nota })
+  await poner('movimientosStock', { id: uuid(), actualizadoEn: fecha, productoId, fecha, tipo, cantidad, nota, vence: vence || undefined })
 }
 
-export async function ingresarMercaderia(productoId: string, cantidad: number, nuevoCosto?: number) {
+export async function ingresarMercaderia(productoId: string, cantidad: number, nuevoCosto?: number, vence?: string) {
   await db.transaction('rw', [db.productos, db.movimientosStock, db.cola], async () => {
-    await moverStock(productoId, cantidad, 'ingreso', 'Ingreso de mercadería', ahoraISO(), nuevoCosto != null && nuevoCosto > 0 ? { precioCompra: nuevoCosto } : {})
+    await moverStock(productoId, cantidad, 'ingreso', vence ? `Ingreso de mercadería · vence ${vence}` : 'Ingreso de mercadería', ahoraISO(), nuevoCosto != null && nuevoCosto > 0 ? { precioCompra: nuevoCosto } : {}, vence)
+  })
+}
+
+/** Dar de baja mercadería vencida o malograda. */
+export async function registrarMerma(productoId: string, cantidad: number, motivo = 'Vencido') {
+  if (cantidad <= 0) return
+  await db.transaction('rw', [db.productos, db.movimientosStock, db.cola], async () => {
+    await moverStock(productoId, -cantidad, 'merma', motivo)
   })
 }
 
@@ -145,7 +153,7 @@ export async function desactivarProducto(p: Producto) {
   })
 }
 
-export async function guardarCliente(datos: { nombre: string; telefono?: string; nota?: string; pagaEl?: string }, existente?: Cliente): Promise<Cliente> {
+export async function guardarCliente(datos: { nombre: string; telefono?: string; nota?: string; pagaEl?: string; tope?: number }, existente?: Cliente): Promise<Cliente> {
   return db.transaction('rw', [db.clientes, db.cola], async () => {
     const fecha = ahoraISO()
     if (existente) return poner('clientes', { ...existente, ...datos, actualizadoEn: fecha })
@@ -189,7 +197,7 @@ export async function guardarNombreBodega(nombre: string) {
 
 export async function exportarBackup(): Promise<string> {
   const data = {
-    app: 'kiosco-pe',
+    app: 'sencillo',
     version: 2,
     exportadoEn: ahoraISO(),
     productos: await db.productos.toArray(),
@@ -206,7 +214,7 @@ export async function exportarBackup(): Promise<string> {
 
 export async function importarBackup(json: string) {
   const data = JSON.parse(json)
-  if (data?.app !== 'kiosco-pe') throw new Error('Este archivo no es un respaldo de Kiosco.PE')
+  if (data?.app !== 'sencillo' && data?.app !== 'kiosco-pe') throw new Error('Este archivo no es un respaldo de Sencillo')
   if (data.version !== 2) throw new Error('Este respaldo es de una versión anterior. Ábrelo en esa versión y vuelve a exportarlo.')
   await db.transaction('rw', db.tables, async () => {
     const nube = (await db.config.toArray()).filter((c) => c.key.startsWith('nube.'))

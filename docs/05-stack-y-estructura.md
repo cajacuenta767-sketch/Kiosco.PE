@@ -63,12 +63,12 @@ Principios:
 ## Estructura de carpetas
 
 ```
-Kiosco.PE/
+Sencillo/
 ├── package.json                 Raíz del monorepo (npm workspaces). Scripts: dev, build, typecheck, test.
 ├── .github/workflows/ci.yml     CI: tipos + pruebas + builds en cada push.
 │
 ├── packages/
-│   └── shared/                  @kiosco/shared — el corazón. Cero dependencias.
+│   └── shared/                  @sencillo/shared — el corazón. Cero dependencias.
 │       └── src/
 │           ├── tipos.ts         Producto, Venta, Cliente, Gasto… y constantes (métodos de pago, categorías).
 │           ├── format.ts        Soles, fechas, redondeo.
@@ -76,7 +76,7 @@ Kiosco.PE/
 │           └── calculos.test.ts Pruebas de la lógica de dinero.
 │
 ├── apps/
-│   ├── web/                     @kiosco/web — la PWA que usa el bodeguero.
+│   ├── web/                     @sencillo/web — la PWA que usa el bodeguero.
 │   │   ├── index.html
 │   │   ├── vite.config.ts       Manifest PWA, service worker, íconos.
 │   │   ├── public/              Íconos y .well-known/assetlinks.json (enlace con la app Android).
@@ -93,7 +93,7 @@ Kiosco.PE/
 │   │       ├── App.tsx          Pestañas, cabecera, tema.
 │   │       └── styles.css       Sistema de diseño (variables, modo oscuro, móvil primero).
 │   │
-│   └── api/                     @kiosco/api — servidor de sincronización.
+│   └── api/                     @sencillo/api — servidor de sincronización.
 │       ├── .env.example         PORT, DATABASE_URL, CORS_ORIGENES.
 │       ├── drizzle.config.ts    Migraciones.
 │       └── src/
@@ -108,7 +108,7 @@ Kiosco.PE/
 │               └── sync.ts      POST /v1/sync/push · GET /v1/sync/pull.
 │
 ├── android/                     Empaquetado para Play Store (TWA).
-│   ├── twa-manifest.json        Configuración Bubblewrap: paquete pe.kiosco.app, colores, ícono, versión.
+│   ├── twa-manifest.json        Configuración Bubblewrap: paquete pe.sencillo.app, colores, ícono, versión.
 │   └── README.md                Paso a paso hasta publicar.
 │
 ├── scripts/e2e.mjs              Arranca la API con PGlite en memoria sirviendo la PWA y corre apps/web/e2e.
@@ -134,8 +134,8 @@ npm run build:api           # apps/api/dist listo para desplegar
 Con Postgres:
 ```bash
 cp apps/api/.env.example apps/api/.env   # poner DATABASE_URL
-npm run db:generate -w @kiosco/api       # genera la migración desde schema.ts
-npm run db:migrate -w @kiosco/api        # la aplica
+npm run db:generate -w @sencillo/api       # genera la migración desde schema.ts
+npm run db:migrate -w @sencillo/api        # la aplica
 npm run dev:api
 ```
 
@@ -145,7 +145,7 @@ npm run dev:api
 |---|---|---|---|
 | **1. Web** | Un enlace por WhatsApp. Se abre y funciona. | Publicar `apps/web/dist` en HTTPS. | Hoy. |
 | **2. Instalable (PWA)** | "Agregar a pantalla de inicio". Ícono, pantalla completa, sin barra de navegador, offline. | Lo mismo que el nivel 1. Ya está configurado (manifest + service worker). | Hoy. |
-| **3. Play Store (TWA)** | Buscar "Kiosco.PE" en Play Store e instalar. Confianza, actualizaciones automáticas, reseñas. | Cuenta de Play Console (USD 25), `bubblewrap build`, huella SHA-256 en `assetlinks.json`. | Fase 1, cuando haya 10 bodegas validando. |
+| **3. Play Store (TWA)** | Buscar "Sencillo" en Play Store e instalar. Confianza, actualizaciones automáticas, reseñas. | Cuenta de Play Console (USD 25), `bubblewrap build`, huella SHA-256 en `assetlinks.json`. | Fase 1, cuando haya 10 bodegas validando. |
 
 Los tres niveles son **la misma app y el mismo código**. No hay una "versión Android" que mantener. Si algún día se
 necesita hardware que el navegador no expone (ticketera Bluetooth, por ejemplo), `apps/web` se envuelve con Capacitor

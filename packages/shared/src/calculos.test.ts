@@ -96,3 +96,38 @@ test('textoListaPrecios agrupa por categoría e incluye paquetes', async () => {
   assert.match(t, /Six-pack \(x6\) — S\/ 38\.00/)
   assert.doesNotMatch(t, /Viejo/)
 })
+
+test('lotesPorVencer estima con PEPS qué lotes quedan y cuándo vencen', async () => {
+  const { lotesPorVencer } = await import('./calculos.ts')
+  const yogur = producto({ id: 'y', nombre: 'Yogur', stock: 7 })
+  const mov = (cantidad: number, fecha: string, vence?: string) => ({ id: fecha + cantidad, actualizadoEn: '', productoId: 'y', fecha, tipo: cantidad > 0 ? 'ingreso' as const : 'venta' as const, cantidad, vence })
+  const movs = [
+    mov(10, '2026-09-01T10:00:00Z', '2026-09-10'), // lote viejo, vence en 10 días desde el 1
+    mov(-8, '2026-09-05T10:00:00Z'), // se vendieron 8: quedan 2 del lote viejo
+    mov(5, '2026-09-08T10:00:00Z', '2026-09-30'), // lote nuevo, lejos
+  ]
+  const r = lotesPorVencer([yogur], movs, '2026-09-09', 7)
+  assert.equal(r.length, 1)
+  assert.equal(r[0].vence, '2026-09-10')
+  assert.equal(r[0].diasParaVencer, 1)
+  assert.equal(r[0].cantidadEstimada, 2)
+  // Si se venden 2 más, el lote viejo se agota y no aparece
+  const r2 = lotesPorVencer([yogur], [...movs, mov(-2, '2026-09-09T09:00:00Z')], '2026-09-09', 7)
+  assert.equal(r2.length, 0)
+  // Un lote ya vencido sale con días negativos
+  const r3 = lotesPorVencer([yogur], movs, '2026-09-12', 7)
+  assert.equal(r3[0].diasParaVencer, -2)
+})
+
+test('textoResumenSemana arma el mensaje con lo importante', async () => {
+  const { textoResumenSemana } = await import('./calculos.ts')
+  const t = textoResumenSemana('Bodega Carmen', '2026-09-07', '2026-09-13', [
+    venta({ dia: '2026-09-08', total: 10, costoTotal: 7, items: [{ productoId: 'a', nombre: 'Pan', cantidad: 5, precio: 2, costo: 1.4 }] }),
+    venta({ dia: '2026-09-09', total: 30, costoTotal: 20, metodoPago: 'fiado', items: [{ productoId: 'b', nombre: 'Pilsen', cantidad: 3, precio: 10, costo: 6.67 }] }),
+  ], [{ monto: 3, categoria: 'pasaje' }, { monto: 100, categoria: 'proveedor' }], [{ monto: 12 }])
+  assert.match(t, /Vendiste S\/ 40\.00 en 2 ventas/)
+  assert.match(t, /Ganaste S\/ 10\.00/) // 13 bruta − 3 pasaje; el proveedor no resta
+  assert.match(t, /Fiaste S\/ 30\.00 y cobraste S\/ 12\.00/)
+  assert.match(t, /Mejor día: 9 set/)
+  assert.match(t, /Pan \(5\), Pilsen \(3\)/)
+})

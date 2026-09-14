@@ -1,5 +1,5 @@
 import type { Producto } from '../db/db'
-import { emojiPara } from '@kiosco/shared'
+import { emojiPara } from '@sencillo/shared'
 
 /** Foto del producto si tiene; si no, su ícono elegido; si no, uno automático por el nombre. */
 export function IconoProducto({ p, tam = 40 }: { p: Pick<Producto, 'nombre' | 'categoria' | 'emoji' | 'imagen'>; tam?: number }) {

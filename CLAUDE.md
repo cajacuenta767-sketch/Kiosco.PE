@@ -1,4 +1,4 @@
-# Kiosco.PE — guía para trabajar en este repositorio
+# Sencillo — guía para trabajar en este repositorio
 
 Sistema de ventas, stock y fiados para bodegas del Perú. Local-first: el celular es la fuente de verdad, la nube es una copia opcional.
 Lee `docs/05-stack-y-estructura.md` antes de tocar la arquitectura.
@@ -21,7 +21,7 @@ npm run build && npm run build:api
 - **Ids son UUID (`uuid()` de shared) y cada fila lleva `actualizadoEn`.** Última escritura gana en la sincronización.
 - **El stock es la suma de `movimientosStock`.** Cualquier cambio de stock crea un movimiento (ver `moverStock` en `lib/acciones.ts`). Nunca viaja a la nube; se reconstruye al recibir cambios.
 - **La API no tiene lógica de negocio.** Solo cuentas, tokens, códigos de vínculo y la bitácora `cambios` bajo `/api`.
-- **Cambios de esquema en la API:** editar `apps/api/src/db/schema.ts` y correr `npm run db:generate -w @kiosco/api`; las migraciones se aplican solas al arrancar.
+- **Cambios de esquema en la API:** editar `apps/api/src/db/schema.ts` y correr `npm run db:generate -w @sencillo/api`; las migraciones se aplican solas al arrancar.
 - **Cambios de esquema en Dexie:** nueva versión en `db/db.ts`; no cambiar el tipo de la clave primaria (Dexie no lo permite).
 - Botones de al menos 44 px, una cifra protagonista por pantalla, tres toques para cobrar. Ver `docs/02-producto.md`.
 

@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { and, eq, gt, ne } from 'drizzle-orm'
 import { z } from 'zod'
-import { TABLAS } from '@kiosco/shared'
+import { TABLAS } from '@sencillo/shared'
 import type { DB } from '../db/cliente.ts'
 import { cambios, dispositivos } from '../db/schema.ts'
 import { requerirSesion } from '../auth.ts'

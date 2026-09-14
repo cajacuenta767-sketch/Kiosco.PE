@@ -8,7 +8,7 @@ import { PIN_VALIDO, cambiarModo, guardarPin, hayPin, verificarPin } from '../li
 import { Modal } from '../components/ui'
 import { MEDIOS_DIGITALES, guardarMedio, leerMedios, type MedioDigital } from '../lib/pagos'
 import { ajustarImagen } from '../lib/imagen'
-import type { MedioPago } from '@kiosco/shared'
+import type { MedioPago } from '@sencillo/shared'
 import { sembrarSiVacio } from '../db/seed'
 import { Campo } from '../components/ui'
 
@@ -41,7 +41,7 @@ export function Ajustes({ avisar, ayudante = false }: { avisar: (m: string) => v
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `kiosco-pe-respaldo-${new Date().toISOString().slice(0, 10)}.json`
+    a.download = `sencillo-respaldo-${new Date().toISOString().slice(0, 10)}.json`
     a.click()
     URL.revokeObjectURL(url)
     avisar('Respaldo descargado')
@@ -138,7 +138,7 @@ export function Ajustes({ avisar, ayudante = false }: { avisar: (m: string) => v
       <h3 className="subtitulo">Consejo</h3>
       <p className="nota">Descarga un respaldo cada semana y guárdalo en tu WhatsApp o Google Drive. Si cambias de celular, restáuralo y sigues donde te quedaste.</p>
 
-      <p className="pie">Kiosco.PE v0.7 · Hecho para las bodegas del Perú 🇵🇪</p>
+      <p className="pie">Sencillo v0.8 · Hecho para las bodegas del Perú 🇵🇪</p>
       {modalPin === 'crear' && <CrearPin onCerrar={() => setModalPin(null)} onOk={() => { setModalPin(null); avisar('PIN guardado') }} />}
     </div>
   )

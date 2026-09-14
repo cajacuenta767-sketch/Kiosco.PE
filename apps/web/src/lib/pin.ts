@@ -1,7 +1,7 @@
 import { db, getConfig, setConfig } from '../db/db'
 
 async function hash(pin: string): Promise<string> {
-  const datos = new TextEncoder().encode(`kiosco-pin:${pin}`)
+  const datos = new TextEncoder().encode(`sencillo-pin:${pin}`)
   const buf = await crypto.subtle.digest('SHA-256', datos)
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('')
 }

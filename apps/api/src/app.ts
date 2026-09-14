@@ -8,7 +8,7 @@ import type { Conexion } from './db/cliente.ts'
 import { rutasBodegas } from './rutas/bodegas.ts'
 import { rutasSync } from './rutas/sync.ts'
 
-export const VERSION = '0.7.0'
+export const VERSION = '0.8.0'
 
 export interface OpcionesApp {
   conexion: Conexion
@@ -27,7 +27,7 @@ export async function crearApp(opts: OpcionesApp): Promise<FastifyInstance> {
 
   await app.register(
     async (api) => {
-      api.get('/salud', async () => ({ ok: true, servicio: 'kiosco-api', version: VERSION, baseDeDatos: motor, hora: new Date().toISOString() }))
+      api.get('/salud', async () => ({ ok: true, servicio: 'sencillo-api', version: VERSION, baseDeDatos: motor, hora: new Date().toISOString() }))
       rutasBodegas(api, db)
       rutasSync(api, db)
     },

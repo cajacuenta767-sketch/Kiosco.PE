@@ -1,4 +1,4 @@
-import type { MedioPago } from '@kiosco/shared'
+import type { MedioPago } from '@sencillo/shared'
 import { db } from '../db/db'
 import { poner } from '../db/repo'
 

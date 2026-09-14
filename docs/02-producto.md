@@ -15,7 +15,7 @@
 ## Los módulos
 
 ### 👋 Bienvenida (solo la primera vez)
-- Nombre de la bodega y tres caminos: empezar con 28 productos de ejemplo, empezar desde cero, o vincular este celular a una bodega que ya usa Kiosco.PE.
+- Nombre de la bodega y tres caminos: empezar con 28 productos de ejemplo, empezar desde cero, o vincular este celular a una bodega que ya usa Sencillo.
 - Sin cuenta, sin correo, sin permisos. En 10 segundos está vendiendo.
 
 ### 🛒 Vender
@@ -36,6 +36,7 @@
 - Cuánto dinero tienes invertido en mercadería y cuánto valdría vendido.
 - Cada producto muestra cuánto ganas por unidad (en soles y en %). Si el precio de compra supera el de venta, la app avisa.
 - **Últimos movimientos** de cada producto (venta, ingreso, ajuste, merma) al editarlo: responde "¿por qué tengo 3 si ayer tenía 10?".
+- **Vencimientos:** al ingresar mercadería se anota cuándo vence; "Por vencer" muestra los lotes que vencen en 7 días (estimando que sale primero lo más antiguo) con baja por merma en un toque.
 - **Lista de precios** con dibujos y paquetes: WhatsApp, imprimir o copiar.
 - **＋ stock:** ingreso de mercadería en dos campos: cuánto llegó y a cuánto te lo dejaron. Si el proveedor subió el precio,
   se actualiza aquí y la ganancia se recalcula sola.
@@ -45,7 +46,7 @@
 - Arriba: cuánto te deben en total y cuántos clientes deben. Es la primera cifra que el bodeguero quiere ver.
 - Lista ordenada por deuda. Cada cliente muestra su último movimiento.
 - Detalle del cliente: deuda en grande, registrar abono (parcial o "pagó todo"), historial completo con qué se llevó.
-- **Fecha de pago acordada** por cliente: la lista marca "paga hoy" o "venció".
+- **Fecha de pago acordada** y **tope de fiado** por cliente: la lista marca "paga hoy", "venció" y el tope; al fiar, la app avisa si se pasaría y pide confirmar.
 - **Recordar por WhatsApp:** un toque abre WhatsApp con el mensaje listo: "Hola Don Pepe, le escribo de Bodega San Martín.
   Su cuenta pendiente es de S/ 7.00. ¡Gracias!". Cordial, sin incomodar, y funciona.
 
@@ -55,6 +56,7 @@
 - Gráfico de los últimos 7 días, con el total vendido y ganado en la semana.
 - Lo más vendido del día.
 - Lista de ventas del día. Tocar una muestra el detalle, permite enviar un **comprobante por WhatsApp** y anularla (el stock vuelve y el fiado se borra).
+- **Resumen de la semana por WhatsApp** y **aviso de noche** ("¿Cerramos la caja?") si vendió y no cerró.
 - **Resumen del mes:** vendido, ganancia neta, gastos, promedio diario, mejor día, fiado otorgado y cobrado, lo más vendido.
 - **Gastos del día** con categoría y si salieron de caja. La ganancia mostrada es neta de gastos del negocio (luz, pasajes, personal); los pagos a proveedores no la bajan porque son mercadería ya descontada como costo en cada venta, pero sí cuentan para el cuadre de caja.
 - **Cerrar caja:** con cuánto empezaste + ventas en efectivo = cuánto deberías tener. Ingresas cuánto hay y ves si cuadra,

@@ -1,5 +1,5 @@
 import Dexie from 'dexie'
-import { ahoraISO, uuid } from '@kiosco/shared'
+import { ahoraISO, uuid } from '@sencillo/shared'
 import { db } from './db'
 
 const NOMBRE_ANTERIOR = 'kiosco-pe'

@@ -72,7 +72,7 @@ anotar fiado) dentro de una transacción Dexie `rw`. O se hacen todas o ninguna.
 
 ## Respaldo
 
-`exportarBackup` serializa todas las tablas a un JSON con marca `app: "kiosco-pe"` y `version: 1`.
+`exportarBackup` serializa todas las tablas a un JSON con marca `app: "sencillo"` y `version: 1`.
 `importarBackup` valida la marca, limpia todo y restaura dentro de una transacción. Es la base de la futura sincronización:
 el mismo formato viaja a la nube.
 

@@ -46,7 +46,7 @@ Probado con dos celulares vendiendo, fiando y anulando sobre la misma bodega.
 - ~~Gastos~~ ✅ (v0.2).
 
 ### Deuda técnica conocida
-- La bitácora `cambios` se compacta con `npm run compactar -w @kiosco/api` (conserva el último cambio por registro y
+- La bitácora `cambios` se compacta con `npm run compactar -w @sencillo/api` (conserva el último cambio por registro y
   borra códigos vencidos). Falta programarlo como tarea nocturna en el hosting y una ruta de "estado completo" para
   vincular celulares sin recorrer el historial cuando haya años de datos.
 

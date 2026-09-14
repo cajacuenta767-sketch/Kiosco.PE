@@ -51,8 +51,8 @@ export function Bienvenida({ onListo }: { onListo: () => void }) {
     <div className="bienvenida">
       <div className="bienvenida-cab">
         <img src="/icon.svg" alt="" width={72} height={72} />
-        <h1>Kiosco.PE</h1>
-        <p>Tu bodega en orden. Ventas, stock y fiados desde tu celular, con o sin internet.</p>
+        <h1>Sencillo</h1>
+        <p>Tu bodega, sencilla. Vende, controla tu stock y cobra tus fiados desde el celular, con o sin internet.</p>
       </div>
 
       {modo === 'inicio' ? (
@@ -64,7 +64,7 @@ export function Bienvenida({ onListo }: { onListo: () => void }) {
           <p className="nota centrado">Verás cómo funciona con 28 productos típicos. Los cambias o borras cuando quieras.</p>
           <button className="btn-secundario ancho" disabled={ocupado} onClick={() => terminar(false)}>Empezar desde cero</button>
           <button className="btn-secundario ancho" disabled={ocupado} onClick={() => terminar(true, true)}>👀 Ver una bodega de ejemplo con movimiento</button>
-          <button className="btn-enlace" onClick={() => setModo('vincular')}>Ya uso Kiosco.PE en otro celular</button>
+          <button className="btn-enlace" onClick={() => setModo('vincular')}>Ya uso Sencillo en otro celular</button>
         </div>
       ) : (
         <div className="bienvenida-cuerpo">

@@ -1,4 +1,4 @@
-/** Tipos de dominio de Kiosco.PE. No dependen de ninguna base de datos ni framework. */
+/** Tipos de dominio de Sencillo. No dependen de ninguna base de datos ni framework. */
 
 export type MetodoPago = 'efectivo' | 'yape' | 'plin' | 'tarjeta' | 'fiado'
 export type Unidad = 'und' | 'kg'
@@ -65,6 +65,7 @@ export interface Cliente extends Registro {
   telefono?: string
   nota?: string
   pagaEl?: string // YYYY-MM-DD, fecha de pago acordada
+  tope?: number // máximo que se le fía; sin tope, sin límite
   creadoEn: string
 }
 
@@ -84,6 +85,7 @@ export interface MovimientoStock extends Registro {
   tipo: 'venta' | 'ingreso' | 'ajuste' | 'merma'
   cantidad: number // positivo entra, negativo sale
   nota?: string
+  vence?: string // YYYY-MM-DD, solo en ingresos: fecha de vencimiento del lote
 }
 
 export interface CierreCaja extends Registro {

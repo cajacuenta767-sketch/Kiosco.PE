@@ -1,12 +1,12 @@
 :root {
-  --fondo: #f6f5f2;
+  --fondo: #faf6f0;
   --superficie: #ffffff;
   --borde: #e6e3dc;
   --texto: #1c1c1a;
   --texto-suave: #6b6a66;
-  --primario: #0f766e;
-  --primario-oscuro: #0b5d57;
-  --primario-suave: #e0f2f0;
+  --primario: #c2410c;
+  --primario-oscuro: #9a3412;
+  --primario-suave: #ffedd5;
   --acento: #f59e0b;
   --acento-suave: #fef3c7;
   --peligro: #dc2626;
@@ -24,7 +24,7 @@
 @media (prefers-color-scheme: dark) {
   :root[data-tema='auto'], :root:not([data-tema]) {
     --fondo: #131513; --superficie: #1e211e; --borde: #2f332f; --texto: #f2f1ec; --texto-suave: #a3a69f;
-    --primario: #14a89c; --primario-oscuro: #0f8a80; --primario-suave: #123c39;
+    --primario: #ea580c; --primario-oscuro: #c2410c; --primario-suave: #431407;
     --acento-suave: #3d2e08; --peligro-suave: #3f1717; --ok-suave: #10321b; --ok: #4ade80; --peligro: #f87171;
     --sombra: 0 1px 2px rgba(0, 0, 0, 0.4);
     color-scheme: dark;
@@ -32,12 +32,12 @@
 }
 :root[data-tema='oscuro'] {
   --fondo: #131513; --superficie: #1e211e; --borde: #2f332f; --texto: #f2f1ec; --texto-suave: #a3a69f;
-  --primario: #14a89c; --primario-oscuro: #0f8a80; --primario-suave: #123c39;
+  --primario: #ea580c; --primario-oscuro: #c2410c; --primario-suave: #431407;
   --acento-suave: #3d2e08; --peligro-suave: #3f1717; --ok-suave: #10321b; --ok: #4ade80; --peligro: #f87171;
   --sombra: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 [data-tema='oscuro'] .cabecera, :root:not([data-tema='claro']) .cabecera { background: var(--primario-oscuro); }
-[data-tema='claro'] .cabecera { background: #0f766e; }
+[data-tema='claro'] .cabecera { background: #c2410c; }
 [data-tema='oscuro'] .chip.activo { background: var(--primario); color: #fff; border-color: var(--primario); }
 [data-tema='oscuro'] .toast { background: #f2f1ec; color: #131513; }
 [data-tema='oscuro'] .tp-stock.bajo { color: #fbbf24; }
@@ -370,3 +370,12 @@ a { color: var(--primario); }
 .pin-grande { width: 100%; text-align: center; font-size: 34px; letter-spacing: 0.4em; padding: 14px; border: 2px solid var(--borde); border-radius: var(--radio); background: var(--superficie); outline: none; }
 .pin-grande:focus { border-color: var(--primario); box-shadow: 0 0 0 3px var(--primario-suave); }
 .check.apagado { opacity: 0.5; }
+
+/* Aviso de cierre de caja */
+.aviso-cierre { display: flex; flex-direction: column; gap: 8px; margin: 12px 16px 0; padding: 12px 14px; border-radius: var(--radio); background: var(--acento-suave); border: 1px solid rgba(245, 158, 11, 0.4); font-size: 15px; }
+.aviso-cierre-acciones { display: flex; gap: 12px; align-items: center; }
+.aviso-cierre-acciones .btn-primario { padding: 10px 16px; font-size: 15px; }
+.texto-alerta { color: #b45309; }
+[data-tema='oscuro'] .texto-alerta { color: #fbbf24; }
+.btn-cuadrado.escuchando { background: var(--peligro-suave); border-color: var(--peligro); animation: latido 1s infinite; }
+@keyframes latido { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }

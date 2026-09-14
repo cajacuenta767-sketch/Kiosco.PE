@@ -1,17 +1,17 @@
 {
-  "name": "kiosco-pe",
+  "name": "sencillo-pe",
   "private": true,
-  "version": "0.7.0",
-  "description": "Kiosco.PE — ventas, stock y fiados para bodegas del Perú. Monorepo: PWA + API + lógica compartida + Android (TWA).",
+  "version": "0.8.0",
+  "description": "Sencillo — ventas, stock y fiados para bodegas del Perú. Monorepo: PWA + API + lógica compartida + Android (TWA).",
   "workspaces": [
     "packages/*",
     "apps/*"
   ],
   "scripts": {
-    "dev": "npm run dev -w @kiosco/web",
-    "dev:api": "npm run dev -w @kiosco/api",
-    "build": "npm run build -w @kiosco/web",
-    "build:api": "npm run build -w @kiosco/api",
+    "dev": "npm run dev -w @sencillo/web",
+    "dev:api": "npm run dev -w @sencillo/api",
+    "build": "npm run build -w @sencillo/web",
+    "build:api": "npm run build -w @sencillo/api",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "e2e": "npm run build && node scripts/e2e.mjs"

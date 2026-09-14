@@ -1,7 +1,7 @@
 import Dexie, { type EntityTable } from 'dexie'
-import type { Cambio, CierreCaja, Cliente, Gasto, MovimientoFiado, MovimientoStock, Producto, Venta } from '@kiosco/shared'
+import type { Cambio, CierreCaja, Cliente, Gasto, MovimientoFiado, MovimientoStock, Producto, Venta } from '@sencillo/shared'
 
-export type { CategoriaGasto, CierreCaja, Cliente, Gasto, ItemVenta, MetodoPago, MovimientoFiado, MovimientoStock, Producto, Unidad, Venta } from '@kiosco/shared'
+export type { CategoriaGasto, CierreCaja, Cliente, Gasto, ItemVenta, MetodoPago, MovimientoFiado, MovimientoStock, Producto, Unidad, Venta } from '@sencillo/shared'
 
 export interface Config {
   key: string
@@ -13,7 +13,7 @@ export interface CambioPendiente extends Cambio {
   id?: number
 }
 
-class KioscoDB extends Dexie {
+class SencilloDB extends Dexie {
   productos!: EntityTable<Producto, 'id'>
   ventas!: EntityTable<Venta, 'id'>
   clientes!: EntityTable<Cliente, 'id'>
@@ -25,7 +25,7 @@ class KioscoDB extends Dexie {
   cola!: EntityTable<CambioPendiente, 'id'>
 
   constructor() {
-    super('kiosco')
+    super('sencillo')
     this.version(1).stores({
       productos: 'id, nombre, categoria, codigoBarras',
       ventas: 'id, fecha, dia, metodoPago, clienteId',
@@ -40,7 +40,7 @@ class KioscoDB extends Dexie {
   }
 }
 
-export const db = new KioscoDB()
+export const db = new SencilloDB()
 
 /** Tablas que viajan a la nube (config solo sincroniza el nombre de la bodega). */
 export const TABLAS_SYNC = {

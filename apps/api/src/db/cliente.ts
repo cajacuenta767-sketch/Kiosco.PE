@@ -29,7 +29,7 @@ export async function conectar(opts: { url?: string; rutaPglite?: string | 'memo
     await migratePg(db, { migrationsFolder: carpetaMigraciones })
     return { db, motor: 'postgres', cerrar: () => pool.end() }
   }
-  const ruta = opts.rutaPglite ?? process.env.PGLITE_DIR ?? './data/kiosco'
+  const ruta = opts.rutaPglite ?? process.env.PGLITE_DIR ?? './data/sencillo'
   const lite = ruta === 'memoria' ? new PGlite() : new PGlite(ruta)
   const db = drizzleLite(lite, { schema })
   await migrateLite(db, { migrationsFolder: carpetaMigraciones })

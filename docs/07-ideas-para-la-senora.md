@@ -26,19 +26,20 @@ Si hay que explicarlo, no va. Cada idea tiene su estado y por qué está o no es
 | **Login sin correo** | Cuenta = su celular + un PIN, como Yape. Entra desde cualquier teléfono; cierra la sesión del que perdió; pide el PIN al abrir la app si quiere. | ✅ v0.7 |
 | **Calculadora de vuelto sin registrar venta** | El botón 🧮 en Vender. Escribe cuánto es y con cuánto pagan. | ✅ v0.7 |
 
+| **Aviso de cierre de caja** | Desde las 8 p. m., si vendió y no cerró caja, un aviso amable: "¿Cerramos la caja?". "Más tarde" lo calla por hoy. | ✅ v0.8 |
+| **Fechas de vencimiento por lote** | Al ingresar mercadería pone cuándo vence. Una semana antes aparece "Por vencer" con cuántas unidades quedan (sale primero lo más antiguo) y un botón para dar de baja lo vencido. | ✅ v0.8 |
+| **Buscar por voz** | Botón 🎤 en Vender; dice "arroz" y aparece. Solo se muestra si el celular lo soporta. | ✅ v0.8 |
+| **Tope de fiado** | Por cliente. Al fiar ve "Rosa ya debe S/ 7 · tope S/ 10 · pasaría su tope" y la app pregunta antes de fiar igual. | ✅ v0.8 |
+| **Resumen de la semana por WhatsApp** | Un botón en Caja arma el mensaje: vendido, ganado, fiado y cobrado, mejor día, lo más vendido. Se lo manda a sí misma o a su esposo. | ✅ v0.8 |
+
 ## Siguientes, en orden de valor para ella
 
-1. **Recordatorio de cierre de caja.** A la hora que ella elija, la app le recuerda cerrar caja. Necesita notificaciones (Fase 3) o, más simple, un aviso al abrir la app después de las 9 p. m.
-2. **Fechas de vencimiento por lote.** Ingresa mercadería con fecha; la app avisa "el yogur vence en 3 días, véndelo primero". Merma evitada = ganancia.
-3. **Buscar por voz.** El micrófono del teclado ya funciona en el buscador, pero un botón grande "🎤" en Vender lo hace evidente para quien no escribe rápido.
-4. **Cuenta regresiva de crédito.** Al fiar, mostrar "Rosa ya debe S/ 45, su tope es S/ 50". Evita el fiado que después no se cobra.
-5. **Resumen semanal por WhatsApp a ella misma.** Los domingos, un mensaje: "Esta semana vendiste S/ 2 340 y ganaste S/ 410. Lo que más salió: Pilsen". Sin abrir la app.
-6. **Catálogo maestro peruano con códigos de barras.** Escanea y el producto ya viene con nombre, foto y precio sugerido. Convierte 2 horas de carga en 10 minutos.
-7. **Recuperar el PIN de la cuenta por WhatsApp.** Hoy, si olvida el PIN de la nube y perdió el celular, no hay vuelta. Un código por WhatsApp al número de la cuenta lo resuelve; necesita un proveedor de mensajes (costo por mensaje).
+1. **Catálogo maestro peruano con códigos de barras.** Escanea y el producto ya viene con nombre, foto y precio sugerido. Convierte 2 horas de carga en 10 minutos. Necesita una base de códigos real, no inventada.
+2. **Recuperar el PIN de la cuenta por WhatsApp.** Hoy, si olvida el PIN de la nube y perdió el celular, no hay vuelta. Un código por WhatsApp al número de la cuenta lo resuelve; necesita un proveedor de mensajes (costo por mensaje).
 
 ## Lo que NO conviene, aunque suene bien
 
-- **Login con correo y contraseña.** Se olvida, se bloquea, se pierde la cuenta. Kiosco.PE usa celular + PIN, como Yape, más código de 6 dígitos entre celulares.
+- **Login con correo y contraseña.** Se olvida, se bloquea, se pierde la cuenta. Sencillo usa celular + PIN, como Yape, más código de 6 dígitos entre celulares.
 - **Reportes en PDF o Excel.** La señora quiere ver la cifra, no imprimirla. Cuando lo pida un contador, se exporta el JSON.
 - **Muchas categorías, marcas, proveedores, almacenes.** Es un solo mostrador. La complejidad se paga en abandono.
 - **Chatbot o asistente con IA dentro de la app.** Otra cosa que aprender. La app debe responder sola con números grandes.

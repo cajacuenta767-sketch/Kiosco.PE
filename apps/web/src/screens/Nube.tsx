@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/db'
 import { activarNubeConAcceso, cerrarSesionDispositivo, configurarAcceso, desconectarNube, generarCodigoVinculo, iniciarSesionNube, leerCuenta, leerEstado, sincronizar, vincularConCodigo, type CuentaNube } from '../sync/motor'
-import { fechaCorta, hora } from '@kiosco/shared'
+import { fechaCorta, hora } from '@sencillo/shared'
 import { Campo, Modal } from '../components/ui'
 
 /** Sección "Nube y otros celulares" de Ajustes. */
@@ -240,7 +240,7 @@ function MostrarCodigo({ onCerrar, avisar }: { onCerrar: () => void; avisar: (m:
         <p className="nota">Generando código…</p>
       ) : (
         <>
-          <p className="nota">En el otro celular, abre Kiosco.PE, entra a <strong>Más → Este es mi segundo celular</strong> y escribe:</p>
+          <p className="nota">En el otro celular, abre Sencillo, entra a <strong>Más → Este es mi segundo celular</strong> y escribe:</p>
           <div className="codigo-grande" aria-label={`Código ${codigo.codigo}`}>{codigo.codigo.split('').map((d, i) => <span key={i}>{d}</span>)}</div>
           <p className="nota">Vale por {codigo.minutos} minutos y se usa una sola vez.</p>
           <button className="btn-secundario ancho" onClick={async () => { try { await navigator.clipboard.writeText(codigo.codigo); avisar('Código copiado') } catch { /* sin portapapeles */ } }}>Copiar código</button>

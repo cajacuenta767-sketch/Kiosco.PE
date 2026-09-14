@@ -1,16 +1,16 @@
 import { Fragment, useMemo, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, type Producto, type Unidad } from '../db/db'
-import { CATEGORIAS, desactivarProducto, diasAtras, guardarProducto, ingresarMercaderia, pedidoSugerido, textoListaPrecios, textoPedido } from '../lib/acciones'
-import type { Paquete } from '@kiosco/shared'
-import { fechaCorta, hora, hoyISO, redondear, soles } from '@kiosco/shared'
+import { CATEGORIAS, desactivarProducto, diasAtras, guardarProducto, ingresarMercaderia, lotesPorVencer, pedidoSugerido, registrarMerma, textoListaPrecios, textoPedido } from '../lib/acciones'
+import type { Paquete } from '@sencillo/shared'
+import { fechaCorta, hora, hoyISO, redondear, soles } from '@sencillo/shared'
 import { Campo, Modal, Vacio } from '../components/ui'
 import { Escaner } from '../components/Escaner'
 import { IconoProducto } from '../components/Icono'
 import { reducirFoto } from '../lib/imagen'
-import { EMOJIS_PRODUCTO, emojiPara } from '@kiosco/shared'
+import { EMOJIS_PRODUCTO, emojiPara } from '@sencillo/shared'
 
-type Filtro = 'todos' | 'bajo' | 'agotado'
+type Filtro = 'todos' | 'bajo' | 'agotado' | 'vence'
 
 export function Stock({ avisar, ayudante = false }: { avisar: (m: string) => void; ayudante?: boolean }) {
   const productos = useLiveQuery(() => db.productos.orderBy('nombre').toArray(), []) ?? []
@@ -23,6 +23,9 @@ export function Stock({ avisar, ayudante = false }: { avisar: (m: string) => voi
   const ventas14 = useLiveQuery(() => db.ventas.where('dia').between(diasAtras(14), hoyISO(), true, true).toArray(), []) ?? []
   const nombreBodega = useLiveQuery(() => db.config.get('nombreBodega'), [])?.value ?? ''
   const lineasPedido = useMemo(() => pedidoSugerido(productos, ventas14), [productos, ventas14])
+  const movimientos = useLiveQuery(() => db.movimientosStock.toArray(), []) ?? []
+  const lotes = useMemo(() => lotesPorVencer(productos, movimientos, hoyISO(), 7), [productos, movimientos])
+  const lotePorProducto = useMemo(() => { const m = new Map<string, (typeof lotes)[number]>(); for (const l of lotes) if (!m.has(l.producto.id)) m.set(l.producto.id, l); return m }, [lotes])
 
   const activos = productos.filter((p) => p.activo)
   const bajos = activos.filter((p) => p.stock > 0 && p.stock <= p.stockMinimo)
@@ -36,9 +39,10 @@ export function Stock({ avisar, ayudante = false }: { avisar: (m: string) => voi
       if (q && !p.nombre.toLowerCase().includes(q) && p.codigoBarras !== q) return false
       if (filtro === 'bajo') return p.stock > 0 && p.stock <= p.stockMinimo
       if (filtro === 'agotado') return p.stock <= 0
+      if (filtro === 'vence') return lotePorProducto.has(p.id)
       return true
     })
-  }, [activos, busqueda, filtro])
+  }, [activos, busqueda, filtro, lotePorProducto])
 
   return (
     <div className="pantalla">
@@ -55,6 +59,12 @@ export function Stock({ avisar, ayudante = false }: { avisar: (m: string) => voi
           <span className="kpi-label">Agotados</span>
           <strong>{agotados.length}</strong>
         </div>
+        {lotes.length > 0 && (
+          <div className="kpi alerta" onClick={() => setFiltro('vence')} role="button">
+            <span className="kpi-label">Por vencer</span>
+            <strong>{lotePorProducto.size}</strong>
+          </div>
+        )}
       </div>
       <p className="nota">
         Tienes <strong>{soles(valorInventario)}</strong> invertidos en mercadería, que vendidos serían <strong>{soles(valorVenta)}</strong>.
@@ -74,9 +84,9 @@ export function Stock({ avisar, ayudante = false }: { avisar: (m: string) => voi
         {!ayudante && <button className="btn-primario" onClick={() => setEditando('nuevo')}>+ Producto</button>}
       </div>
       <div className="chips">
-        {(['todos', 'bajo', 'agotado'] as Filtro[]).map((f) => (
+        {(['todos', 'bajo', 'agotado', 'vence'] as Filtro[]).map((f) => (
           <button key={f} className={'chip' + (filtro === f ? ' activo' : '')} onClick={() => setFiltro(f)}>
-            {f === 'todos' ? 'Todos' : f === 'bajo' ? '⚠️ Por acabarse' : '⛔ Agotados'}
+            {f === 'todos' ? 'Todos' : f === 'bajo' ? '⚠️ Por acabarse' : f === 'agotado' ? '⛔ Agotados' : '⏰ Por vencer'}
           </button>
         ))}
       </div>
@@ -98,6 +108,7 @@ export function Stock({ avisar, ayudante = false }: { avisar: (m: string) => voi
                   <div className="item-titulo">
                     <strong>{p.nombre}</strong>
                     <span className="item-sub">{p.categoria} · gana {soles(p.precioVenta - p.precioCompra)} ({margen.toFixed(0)}%)</span>
+                    {lotePorProducto.has(p.id) && (() => { const l = lotePorProducto.get(p.id)!; return <span className={'item-sub ' + (l.diasParaVencer < 0 ? 'texto-peligro' : 'texto-alerta')}>⏰ {l.diasParaVencer < 0 ? `Venció hace ${-l.diasParaVencer} ${-l.diasParaVencer === 1 ? 'día' : 'días'}` : l.diasParaVencer === 0 ? 'Vence hoy' : `Vence en ${l.diasParaVencer} ${l.diasParaVencer === 1 ? 'día' : 'días'}`} · ~{l.cantidadEstimada} {p.unidad}. Véndelo primero.</span> })()}
                   </div>
                   <div className="item-derecha">
                     <span className="item-precio">{soles(p.precioVenta)}</span>
@@ -107,6 +118,9 @@ export function Stock({ avisar, ayudante = false }: { avisar: (m: string) => voi
                   </div>
                 </button>
                 {!ayudante && <button className="btn-mini item-accion" title="Ingresar mercadería" onClick={() => setIngresando(p)}>＋ stock</button>}
+                {!ayudante && filtro === 'vence' && lotePorProducto.has(p.id) && (
+                  <button className="btn-mini item-accion texto-peligro" title="Dar de baja lo vencido" onClick={async () => { const l = lotePorProducto.get(p.id)!; const n = Number(prompt(`¿Cuántas unidades de ${p.nombre} das de baja por vencidas?`, String(Math.min(l.cantidadEstimada, p.stock)))); if (n > 0) { await registrarMerma(p.id, Math.min(n, p.stock)); avisar(`${n} ${p.unidad} de ${p.nombre} dadas de baja`) } }}>🗑 merma</button>
+                )}
               </li>
             )
           })}
@@ -303,10 +317,11 @@ function FormProducto({ producto, onCerrar, onGuardado }: { producto: Producto |
 function Ingreso({ producto, onCerrar, onHecho }: { producto: Producto; onCerrar: () => void; onHecho: (m: string) => void }) {
   const [cant, setCant] = useState('')
   const [costo, setCosto] = useState(String(producto.precioCompra))
+  const [vence, setVence] = useState('')
   const n = Number(cant) || 0
   async function guardar() {
     if (n <= 0) return
-    await ingresarMercaderia(producto.id, n, Number(costo) || undefined)
+    await ingresarMercaderia(producto.id, n, Number(costo) || undefined, vence || undefined)
     onHecho(`Ingresaste ${n} ${producto.unidad} de ${producto.nombre}`)
   }
   return (
@@ -317,6 +332,9 @@ function Ingreso({ producto, onCerrar, onHecho }: { producto: Producto; onCerrar
       </Campo>
       <Campo label="¿A qué precio te lo dejaron? (S/ por unidad)" ayuda="Si subió el precio, actualízalo aquí">
         <input type="number" inputMode="decimal" step="0.1" min={0} value={costo} onChange={(e) => setCosto(e.target.value)} />
+      </Campo>
+      <Campo label="¿Cuándo vence? (opcional)" ayuda="Te avisaremos una semana antes para que lo vendas primero">
+        <input type="date" value={vence} onChange={(e) => setVence(e.target.value)} />
       </Campo>
       {n > 0 && <p className="nota">Quedará con <strong>{redondear(producto.stock + n)} {producto.unidad}</strong>. Inversión: {soles(n * (Number(costo) || 0))}.</p>}
       <button className="btn-primario grande ancho" disabled={n <= 0} onClick={guardar}>Registrar ingreso</button>

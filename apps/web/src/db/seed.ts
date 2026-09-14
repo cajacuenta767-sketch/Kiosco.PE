@@ -1,4 +1,4 @@
-import { ahoraISO, generarDemo, uuid } from '@kiosco/shared'
+import { ahoraISO, generarDemo, uuid } from '@sencillo/shared'
 import { db, setConfig, type MovimientoStock, type Producto } from './db'
 
 type Semilla = [string, string, number, number, number, number, 'und' | 'kg']

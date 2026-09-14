@@ -64,7 +64,7 @@ El diferencial no es tener más funciones. Es tener **menos**, y que cada una se
 
 > "¿Sabes cuánto te deben en total ahora mismo? ¿Sin buscar el cuaderno?"
 
-Esa pregunta abre cualquier conversación con un bodeguero. Kiosco.PE la responde en la primera pantalla.
+Esa pregunta abre cualquier conversación con un bodeguero. Sencillo la responde en la primera pantalla.
 
 ## El plan de ejecución (resumen)
 

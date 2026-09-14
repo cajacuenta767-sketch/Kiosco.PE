@@ -1,9 +1,9 @@
 {
-  "name": "@kiosco/shared",
+  "name": "@sencillo/shared",
   "private": true,
-  "version": "0.7.0",
+  "version": "0.8.0",
   "type": "module",
-  "description": "Tipos de dominio y lógica pura de Kiosco.PE, compartida entre la app y la API.",
+  "description": "Tipos de dominio y lógica pura de Sencillo, compartida entre la app y la API.",
   "exports": {
     ".": "./src/index.ts"
   },

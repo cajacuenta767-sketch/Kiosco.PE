@@ -1,7 +1,7 @@
 {
-  "name": "@kiosco/web",
+  "name": "@sencillo/web",
   "private": true,
-  "version": "0.7.0",
+  "version": "0.8.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,7 +10,7 @@
     "typecheck": "tsc -b --noEmit"
   },
   "dependencies": {
-    "@kiosco/shared": "*",
+    "@sencillo/shared": "*",
     "dexie": "^4.0.11",
     "dexie-react-hooks": "^1.1.7",
     "react": "^19.1.0",

@@ -1,6 +1,6 @@
 # Despliegue en Fly.io: una máquina pequeña sirve la PWA y la API; los datos viven en un volumen (PGlite).
 # Para usar Postgres administrado, define DATABASE_URL como secreto y el volumen deja de ser necesario.
-app = "kiosco-pe"
+app = "sencillo-pe"
 primary_region = "gru"
 
 [build]
@@ -8,7 +8,7 @@ primary_region = "gru"
 
 [env]
   PORT = "3000"
-  PGLITE_DIR = "/app/data/kiosco"
+  PGLITE_DIR = "/app/data/sencillo"
   SERVIR_WEB = "true"
 
 [http_service]
@@ -19,7 +19,7 @@ primary_region = "gru"
   min_machines_running = 1
 
 [[mounts]]
-  source = "kiosco_datos"
+  source = "sencillo_datos"
   destination = "/app/data"
 
 [[vm]]

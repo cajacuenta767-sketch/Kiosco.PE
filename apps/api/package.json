@@ -1,9 +1,9 @@
 {
-  "name": "@kiosco/api",
+  "name": "@sencillo/api",
   "private": true,
-  "version": "0.7.0",
+  "version": "0.8.0",
   "type": "module",
-  "description": "API de Kiosco.PE: cuentas de bodega, sincronización de cambios y respaldo en la nube.",
+  "description": "API de Sencillo: cuentas de bodega, sincronización de cambios y respaldo en la nube.",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "@fastify/cors": "^11.0.0",
-    "@kiosco/shared": "*",
+    "@sencillo/shared": "*",
     "dotenv": "^17.0.0",
     "drizzle-orm": "^0.45.0",
     "fastify": "^5.4.0",

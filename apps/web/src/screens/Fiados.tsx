@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, type Cliente, type MetodoPago, type MovimientoFiado } from '../db/db'
 import { METODOS, deudaDe, guardarCliente, registrarAbono } from '../lib/acciones'
-import { fechaCorta, hora, hoyISO, soles } from '@kiosco/shared'
+import { fechaCorta, hora, hoyISO, soles } from '@sencillo/shared'
 import { Campo, Modal, Vacio } from '../components/ui'
 
 export function Fiados({ avisar }: { avisar: (m: string) => void }) {
@@ -70,6 +70,7 @@ export function Fiados({ avisar }: { avisar: (m: string) => void }) {
                 </div>
                 <div className="item-derecha">
                   <span className={'item-precio ' + (deuda > 0 ? 'texto-peligro' : 'texto-ok')}>{deuda > 0 ? soles(deuda) : 'Al día'}</span>
+                  {cliente.tope != null && cliente.tope > 0 && <span className={'pill' + (deuda >= cliente.tope ? ' peligro' : deuda >= cliente.tope * 0.8 ? ' alerta' : '')}>tope {soles(cliente.tope)}</span>}
                 </div>
               </button>
             </li>
@@ -98,9 +99,10 @@ function FormCliente({ cliente, onCerrar, onGuardado }: { cliente?: Cliente; onC
   const [telefono, setTelefono] = useState(cliente?.telefono ?? '')
   const [nota, setNota] = useState(cliente?.nota ?? '')
   const [pagaEl, setPagaEl] = useState(cliente?.pagaEl ?? '')
+  const [tope, setTope] = useState(cliente?.tope != null ? String(cliente.tope) : '')
   async function guardar() {
     if (!nombre.trim()) return
-    await guardarCliente({ nombre: nombre.trim(), telefono: telefono.trim() || undefined, nota: nota.trim() || undefined, pagaEl: pagaEl || undefined }, cliente)
+    await guardarCliente({ nombre: nombre.trim(), telefono: telefono.trim() || undefined, nota: nota.trim() || undefined, pagaEl: pagaEl || undefined, tope: Number(tope) > 0 ? Number(tope) : undefined }, cliente)
     onGuardado()
   }
   return (
@@ -116,6 +118,9 @@ function FormCliente({ cliente, onCerrar, onGuardado }: { cliente?: Cliente; onC
       </Campo>
       <Campo label="Fecha de pago acordada (opcional)" ayuda="Te avisamos cuando venza">
         <input type="date" value={pagaEl} onChange={(e) => setPagaEl(e.target.value)} />
+      </Campo>
+      <Campo label="Tope de fiado (S/, opcional)" ayuda="Al cobrar te avisamos si se pasa">
+        <input type="number" inputMode="decimal" min={0} step="5" placeholder="Ej. 50" value={tope} onChange={(e) => setTope(e.target.value)} />
       </Campo>
       <button className="btn-primario grande ancho" disabled={!nombre.trim()} onClick={guardar}>Guardar</button>
     </Modal>

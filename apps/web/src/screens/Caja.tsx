@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, type CategoriaGasto, type Gasto, type Venta } from '../db/db'
-import { CATEGORIAS_GASTO, METODOS, anularVenta, cerrarCaja, eliminarGasto, registrarGasto, resumirVentas } from '../lib/acciones'
-import { aDia, diaLabel, fechaCorta, fechaLarga, gastosOperativos, hora, hoyISO, mesLabel, redondear, resumirMes, soles, textoComprobante } from '@kiosco/shared'
+import { CATEGORIAS_GASTO, METODOS, anularVenta, cerrarCaja, eliminarGasto, registrarGasto, resumirVentas, textoResumenSemana } from '../lib/acciones'
+import { aDia, diaLabel, fechaCorta, fechaLarga, gastosOperativos, hora, hoyISO, mesLabel, redondear, resumirMes, soles, textoComprobante } from '@sencillo/shared'
 import { Campo, Modal, Vacio } from '../components/ui'
 
 export function Caja({ avisar, ayudante = false }: { avisar: (m: string) => void; ayudante?: boolean }) {
@@ -26,6 +26,7 @@ export function Caja({ avisar, ayudante = false }: { avisar: (m: string) => void
   }, [])
   const semana = useLiveQuery(() => db.ventas.where('dia').between(ultimos7[0], ultimos7[6], true, true).toArray(), [ultimos7]) ?? []
   const gastosSemana = useLiveQuery(() => db.gastos.where('dia').between(ultimos7[0], ultimos7[6], true, true).toArray(), [ultimos7]) ?? []
+  const abonosSemana = useLiveQuery(() => db.movimientosFiado.where('fecha').between(`${ultimos7[0]}T00:00:00`, `${ultimos7[6]}T23:59:59.999Z`, true, true).filter((m) => m.tipo === 'abono').toArray(), [ultimos7]) ?? []
   const [cerrando, setCerrando] = useState(false)
   const [detalle, setDetalle] = useState<Venta | null>(null)
   const [verMes, setVerMes] = useState(false)
@@ -122,6 +123,10 @@ export function Caja({ avisar, ayudante = false }: { avisar: (m: string) => void
           </button>
         ))}
       </div>
+
+      {!ayudante && semana.length > 0 && (
+        <a className="btn-whatsapp" href={`https://wa.me/?text=${encodeURIComponent(textoResumenSemana(nombreBodega, ultimos7[0], ultimos7[6], semana, gastosSemana, abonosSemana))}`} target="_blank" rel="noreferrer">💬 Compartir resumen de la semana</a>
+      )}
 
       {!ayudante && <button className="banner-accion" onClick={() => setVerMes(true)}>
         <span>📅 <strong>{mesLabel(mes)}</strong> · vendido {soles(rm.vendido)} · ganancia neta {soles(rm.gananciaNeta)}</span>

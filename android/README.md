@@ -1,7 +1,7 @@
-# Kiosco.PE en Play Store (Trusted Web Activity)
+# Sencillo en Play Store (Trusted Web Activity)
 
 La app de Play Store **es la misma PWA**, empaquetada con Bubblewrap como Trusted Web Activity (TWA).
-No hay código nativo que mantener: cada `npm run build` desplegado en `app.kiosco.pe` actualiza la app instalada.
+No hay código nativo que mantener: cada `npm run build` desplegado en `app.sencillo.pe` actualiza la app instalada.
 
 ## Requisitos (una sola vez)
 - Java 17 y Android SDK (Bubblewrap los descarga si no están).
@@ -12,7 +12,7 @@ No hay código nativo que mantener: cada `npm run build` desplegado en `app.kios
 ## Pasos
 ```bash
 cd android
-bubblewrap init --manifest https://app.kiosco.pe/manifest.webmanifest   # solo la primera vez; ya existe twa-manifest.json
+bubblewrap init --manifest https://app.sencillo.pe/manifest.webmanifest   # solo la primera vez; ya existe twa-manifest.json
 bubblewrap build        # genera app-release-bundle.aab y app-release-signed.apk
 ```
 

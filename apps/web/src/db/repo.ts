@@ -1,5 +1,5 @@
-import type { Tabla } from '@kiosco/shared'
-import { ahoraISO } from '@kiosco/shared'
+import type { Tabla } from '@sencillo/shared'
+import { ahoraISO } from '@sencillo/shared'
 import { db, TABLAS_SYNC } from './db'
 
 type Fila = { id: string; actualizadoEn: string } | { key: string; value: string }

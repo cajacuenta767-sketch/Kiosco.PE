@@ -1,5 +1,5 @@
-import type { Cambio, CambioRecibido, RespuestaPull, RespuestaRegistro, Tabla } from '@kiosco/shared'
-import { ahoraISO, redondear } from '@kiosco/shared'
+import type { Cambio, CambioRecibido, RespuestaPull, RespuestaRegistro, Tabla } from '@sencillo/shared'
+import { ahoraISO, redondear } from '@sencillo/shared'
 import { db, getConfig, setConfig, TABLAS_SYNC } from '../db/db'
 import { alEncolar, encolarTodo } from '../db/repo'
 

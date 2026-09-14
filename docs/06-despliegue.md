@@ -7,8 +7,8 @@ Sin Postgres externo, la API usa **PGlite**, un Postgres embebido que guarda en 
 Para una bodega, o para cien, alcanza con una máquina de 512 MB.
 
 ```bash
-docker build -t kiosco-pe .
-docker run -p 3000:3000 -v kiosco_datos:/app/data kiosco-pe
+docker build -t sencillo .
+docker run -p 3000:3000 -v sencillo_datos:/app/data sencillo
 # → http://localhost:3000        la app
 # → http://localhost:3000/api/salud
 ```
@@ -17,9 +17,9 @@ docker run -p 3000:3000 -v kiosco_datos:/app/data kiosco-pe
 
 ```bash
 fly launch --no-deploy          # usa fly.toml; crea la app
-fly volumes create kiosco_datos --size 1 --region gru
+fly volumes create sencillo_datos --size 1 --region gru
 fly deploy
-fly certs add app.kiosco.pe     # HTTPS obligatorio para PWA y TWA
+fly certs add app.sencillo.pe     # HTTPS obligatorio para PWA y TWA
 ```
 
 ## Con Postgres administrado (Neon, Supabase, Railway)
@@ -34,7 +34,7 @@ fly deploy
 Las migraciones se aplican solas al arrancar (`drizzle/*.sql`). Para generar una nueva tras cambiar `schema.ts`:
 
 ```bash
-npm run db:generate -w @kiosco/api
+npm run db:generate -w @sencillo/api
 ```
 
 ## Variables de entorno
@@ -43,7 +43,7 @@ npm run db:generate -w @kiosco/api
 |---|---|---|
 | `PORT` | `3000` | Puerto HTTP |
 | `DATABASE_URL` | vacío | Postgres externo. Si está vacío se usa PGlite. |
-| `PGLITE_DIR` | `./data/kiosco` | Carpeta de datos de PGlite |
+| `PGLITE_DIR` | `./data/sencillo` | Carpeta de datos de PGlite |
 | `CORS_ORIGENES` | todos | Orígenes permitidos, separados por coma. En producción con la PWA servida por la API no hace falta. |
 | `SERVIR_WEB` | `true` | Servir `apps/web/dist` desde la API |
 
@@ -51,14 +51,14 @@ npm run db:generate -w @kiosco/api
 
 Si se prefiere la PWA en Cloudflare Pages o Netlify y la API aparte:
 
-1. Compilar con `VITE_API_URL=https://api.kiosco.pe/api npm run build`.
+1. Compilar con `VITE_API_URL=https://api.sencillo.pe/api npm run build`.
 2. Publicar `apps/web/dist`.
-3. En la API, `CORS_ORIGENES=https://app.kiosco.pe` y `SERVIR_WEB=false`.
+3. En la API, `CORS_ORIGENES=https://app.sencillo.pe` y `SERVIR_WEB=false`.
 
 ## Mantenimiento
 
 ```bash
-npm run compactar -w @kiosco/api     # conserva el último cambio por registro y borra códigos vencidos
+npm run compactar -w @sencillo/api     # conserva el último cambio por registro y borra códigos vencidos
 ```
 Programarlo una vez por noche (cron del hosting o `fly machine run`). Es seguro en caliente.
 

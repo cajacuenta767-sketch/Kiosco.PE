@@ -30,7 +30,7 @@ for (let i = 0; i < 4; i++) {
 
 // ── B entra desde la bienvenida con número y PIN (celular nuevo, sin código) ──
 const B = await celular(browser, 'B', errores, { conEjemplo: false })
-await B.getByRole('button', { name: /Ya uso Kiosco.PE en otro celular/ }).click()
+await B.getByRole('button', { name: /Ya uso Sencillo en otro celular/ }).click()
 await B.getByPlaceholder('9xxxxxxxx').fill('987654321')
 await B.getByLabel('PIN de la cuenta').fill('0000')
 await B.getByRole('button', { name: /Entrar y bajar mis datos/ }).click()

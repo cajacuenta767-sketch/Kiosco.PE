@@ -1,10 +1,11 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, type Cliente, type MetodoPago, type Producto } from '../db/db'
-import { METODOS, anularVenta, diasAtras, guardarCliente, lineaLibre, lineaPaquete, loDeSiempre, precioLinea, registrarVenta, totalCarrito, unidadesVendidas, type LineaCarrito } from '../lib/acciones'
+import { METODOS, anularVenta, deudaDe, diasAtras, guardarCliente, lineaLibre, lineaPaquete, loDeSiempre, precioLinea, registrarVenta, totalCarrito, unidadesVendidas, type LineaCarrito } from '../lib/acciones'
+import { Microfono } from '../components/Microfono'
 import { MEDIOS_DIGITALES, leerMedios, type MedioDigital } from '../lib/pagos'
-import type { MedioPago, Venta } from '@kiosco/shared'
-import { hoyISO, redondear, soles } from '@kiosco/shared'
+import type { MedioPago, Venta } from '@sencillo/shared'
+import { hoyISO, redondear, soles } from '@sencillo/shared'
 import { Campo, Modal } from '../components/ui'
 import { Escaner } from '../components/Escaner'
 import { IconoProducto } from '../components/Icono'
@@ -28,6 +29,12 @@ export function Vender({ avisar }: { avisar: (m: string, accion?: AccionToast) =
   const [calculadora, setCalculadora] = useState(false)
   const [clientePre, setClientePre] = useState<string | undefined>(undefined)
   const medios = useLiveQuery(leerMedios, [])
+  const movsFiado = useLiveQuery(() => db.movimientosFiado.toArray(), []) ?? []
+  const deudas = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const c of clientes) m.set(c.id, deudaDe(movsFiado.filter((x) => x.clienteId === c.id)))
+    return m
+  }, [clientes, movsFiado])
 
   const activos = productos.filter((p) => p.activo)
   const vendidos = useMemo(() => unidadesVendidas(ventas30), [ventas30])
@@ -156,6 +163,7 @@ export function Vender({ avisar }: { avisar: (m: string, accion?: AccionToast) =
             if (e.key === 'Enter' && visibles.length === 1) agregar(visibles[0])
           }}
         />
+        <Microfono onTexto={(t) => setBusqueda(t)} />
         <button className="btn-secundario btn-cuadrado" title="Escanear con la cámara" aria-label="Escanear con la cámara" onClick={() => setEscaneando(true)}>📷</button>
         <button className="btn-secundario btn-cuadrado" title="Venta rápida sin producto" aria-label="Venta rápida" onClick={() => setVentaRapida(true)}>S/</button>
         <button className="btn-secundario btn-cuadrado" title="Lo de siempre de un cliente" aria-label="Clientes" onClick={() => setVerClientes(true)}>👤</button>
@@ -249,7 +257,7 @@ export function Vender({ avisar }: { avisar: (m: string, accion?: AccionToast) =
       {calculadora && <CalculadoraVuelto onCerrar={() => setCalculadora(false)} />}
       {verClientes && <LoDeSiempre clientes={clientes} onCerrar={() => setVerClientes(false)} onElegir={agregarLoDeSiempre} />}
 
-      {cobrando && <Cobrar total={total} clientes={clientes} clienteInicial={clientePre} medios={medios} onCerrar={() => setCobrando(false)} onConfirmar={confirmar} />}
+      {cobrando && <Cobrar total={total} clientes={clientes} deudas={deudas} clienteInicial={clientePre} medios={medios} onCerrar={() => setCobrando(false)} onConfirmar={confirmar} />}
     </div>
   )
 }
@@ -282,13 +290,16 @@ function VentaRapida({ onCerrar, onAgregar }: { onCerrar: () => void; onAgregar:
   )
 }
 
-function Cobrar({ total, clientes, clienteInicial, medios, onCerrar, onConfirmar }: { total: number; clientes: Cliente[]; clienteInicial?: string; medios?: Record<MedioDigital, MedioPago>; onCerrar: () => void; onConfirmar: (m: MetodoPago, clienteId?: string, pagoCon?: number) => Promise<void> }) {
+function Cobrar({ total, clientes, deudas, clienteInicial, medios, onCerrar, onConfirmar }: { total: number; clientes: Cliente[]; deudas: Map<string, number>; clienteInicial?: string; medios?: Record<MedioDigital, MedioPago>; onCerrar: () => void; onConfirmar: (m: MetodoPago, clienteId?: string, pagoCon?: number) => Promise<void> }) {
   const [metodo, setMetodo] = useState<MetodoPago>('efectivo')
   const [pagoCon, setPagoCon] = useState<string>('')
   const [clienteId, setClienteId] = useState<string | undefined>(clienteInicial ?? clientes[0]?.id)
   const [pantallaCompleta, setPantallaCompleta] = useState(false)
   const medio = metodo === 'yape' || metodo === 'plin' ? medios?.[metodo] : undefined
   const infoMedio = MEDIOS_DIGITALES.find((m) => m.id === metodo)
+  const clienteSel = clientes.find((c) => c.id === clienteId)
+  const deudaActual = clienteSel ? (deudas.get(clienteSel.id) ?? 0) : 0
+  const pasaTope = Boolean(clienteSel?.tope && deudaActual + total > clienteSel.tope!)
   const [nuevoCliente, setNuevoCliente] = useState('')
   const [guardando, setGuardando] = useState(false)
 
@@ -298,6 +309,9 @@ function Cobrar({ total, clientes, clienteInicial, medios, onCerrar, onConfirmar
   const sugeridos = Array.from(new Set([Math.ceil(total), ...billetes])).filter((b) => b >= total)
 
   async function confirmar() {
+    if (metodo === 'fiado' && pasaTope && !nuevoCliente.trim()) {
+      if (!confirm(`${clienteSel!.nombre} ya debe ${soles(deudaActual)} y su tope es ${soles(clienteSel!.tope!)}. ¿Le fías igual?`)) return
+    }
     setGuardando(true)
     try {
       let cid = clienteId
@@ -380,6 +394,13 @@ function Cobrar({ total, clientes, clienteInicial, medios, onCerrar, onConfirmar
                 {clientes.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
               </select>
             </Campo>
+          )}
+          {clienteSel && !nuevoCliente.trim() && (
+            <p className={'nota ' + (pasaTope ? 'texto-peligro' : deudaActual > 0 ? 'texto-alerta' : 'texto-ok')}>
+              {deudaActual > 0 ? `${clienteSel.nombre} ya debe ${soles(deudaActual)}` : `${clienteSel.nombre} está al día`}
+              {clienteSel.tope ? ` · tope ${soles(clienteSel.tope)}` : ''}
+              {pasaTope ? ` · con esta venta pasaría su tope (${soles(deudaActual + total)})` : ''}
+            </p>
           )}
           <Campo label={clientes.length > 0 ? 'O escribe un cliente nuevo' : 'Nombre del cliente'} ayuda="Se creará en tu lista de fiados">
             <input type="text" placeholder="Ej. Sra. Rosa (casa verde)" value={nuevoCliente} onChange={(e) => setNuevoCliente(e.target.value)} />

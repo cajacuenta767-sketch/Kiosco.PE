@@ -27,7 +27,7 @@ export function Bloqueo({ nombreBodega, modo, onEntrar }: { nombreBodega: string
     <div className="bienvenida bloqueo">
       <div className="bienvenida-cab">
         <img src="/icon.svg" alt="" width={72} height={72} />
-        <h1>{nombreBodega || 'Kiosco.PE'}</h1>
+        <h1>{nombreBodega || 'Sencillo'}</h1>
         <p>Escribe tu PIN para entrar</p>
       </div>
       <div className="bienvenida-cuerpo">
