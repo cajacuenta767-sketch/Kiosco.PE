@@ -35,6 +35,7 @@ await page.getByText(/Venta registrada/).waitFor()
 await shot(page, '53-deshacer')
 await page.getByRole('button', { name: 'Deshacer' }).click()
 await page.getByText(/Venta deshecha/).waitFor()
+await page.getByRole('button', { name: /Inca Kola 500ml/ }).locator('.tp-stock', { hasText: antes }).waitFor({ timeout: 5000 }).catch(() => {})
 const despues = await page.getByRole('button', { name: /Inca Kola 500ml/ }).locator('.tp-stock').innerText()
 esperar(antes === despues, `deshacer devuelve el stock (${antes} → ${despues})`)
 

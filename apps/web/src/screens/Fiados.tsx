@@ -34,18 +34,14 @@ export function Fiados({ avisar }: { avisar: (m: string) => void }) {
 
   const totalCalle = filas.reduce((s, f) => s + Math.max(0, f.deuda), 0)
   const deudores = filas.filter((f) => f.deuda > 0).length
+  const vencidos = filas.filter((f) => f.deuda > 0 && f.cliente.pagaEl && f.cliente.pagaEl < hoyISO()).length
 
   return (
     <div className="pantalla">
-      <div className="kpis">
-        <div className="kpi">
-          <span className="kpi-label">Te deben en total</span>
-          <strong>{soles(totalCalle)}</strong>
-        </div>
-        <div className="kpi">
-          <span className="kpi-label">Clientes con deuda</span>
-          <strong>{deudores}</strong>
-        </div>
+      <div className="hero-cifra">
+        <span>Te deben en total</span>
+        <strong className={totalCalle > 0 ? 'texto-peligro' : 'texto-ok'}>{soles(totalCalle)}</strong>
+        <span className="hero-sub">{deudores === 0 ? 'Nadie te debe. 🎉' : `${deudores} ${deudores === 1 ? 'cliente debe' : 'clientes deben'}${vencidos > 0 ? ` · ${vencidos} con fecha vencida` : ''}`}</span>
       </div>
       <div className="buscador con-boton">
         <input type="search" placeholder="Buscar cliente…" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
@@ -61,6 +57,7 @@ export function Fiados({ avisar }: { avisar: (m: string) => void }) {
           {filas.map(({ cliente, deuda, ultimo }) => (
             <li key={cliente.id} className="item">
               <button className="item-cuerpo" onClick={() => setAbierto(cliente)}>
+                <span className={'avatar ' + (deuda > 0 ? 'debe' : 'aldia')} aria-hidden="true">{iniciales(cliente.nombre)}</span>
                 <div className="item-titulo">
                   <strong>{cliente.nombre}</strong>
                   <span className="item-sub">
@@ -92,6 +89,11 @@ export function Fiados({ avisar }: { avisar: (m: string) => void }) {
       )}
     </div>
   )
+}
+
+function iniciales(nombre: string): string {
+  const partes = nombre.replace(/\(.*?\)/g, '').trim().split(/\s+/).filter(Boolean)
+  return partes.slice(0, 2).map((p) => p[0]?.toUpperCase() ?? '').join('') || '?'
 }
 
 function FormCliente({ cliente, onCerrar, onGuardado }: { cliente?: Cliente; onCerrar: () => void; onGuardado: () => void }) {
@@ -167,7 +169,7 @@ function DetalleCliente({ cliente, movs, nombreBodega, onCerrar, avisar }: { cli
             ))}
           </div>
           <div className="acciones">
-            <button className="btn-secundario" onClick={() => abonar(deuda)}>Pagó todo</button>
+            <button className="btn-ok" onClick={() => abonar(deuda)}>✓ Pagó todo</button>
             <button className="btn-primario" disabled={n <= 0} onClick={() => abonar(n)}>Abonar {n > 0 ? soles(n) : ''}</button>
           </div>
           {linkWa ? (

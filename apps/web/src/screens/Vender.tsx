@@ -6,7 +6,7 @@ import { Microfono } from '../components/Microfono'
 import { MEDIOS_DIGITALES, leerMedios, type MedioDigital } from '../lib/pagos'
 import type { MedioPago, Venta } from '@sencillo/shared'
 import { hoyISO, redondear, soles } from '@sencillo/shared'
-import { Campo, Modal } from '../components/ui'
+import { Campo, ConfirmacionVenta, Modal, vibrar, type VentaLista } from '../components/ui'
 import { Escaner } from '../components/Escaner'
 import { IconoProducto } from '../components/Icono'
 import { sonarCobro } from '../lib/sonido'
@@ -28,6 +28,9 @@ export function Vender({ avisar }: { avisar: (m: string, accion?: AccionToast) =
   const [verClientes, setVerClientes] = useState(false)
   const [calculadora, setCalculadora] = useState(false)
   const [clientePre, setClientePre] = useState<string | undefined>(undefined)
+  const [listo, setListo] = useState<VentaLista | null>(null)
+  const [rebotando, setRebotando] = useState<string | null>(null)
+  const hayVentas = (useLiveQuery(() => db.ventas.count(), []) ?? 1) > 0
   const medios = useLiveQuery(leerMedios, [])
   const movsFiado = useLiveQuery(() => db.movimientosFiado.toArray(), []) ?? []
   const deudas = useMemo(() => {
@@ -60,6 +63,9 @@ export function Vender({ avisar }: { avisar: (m: string, accion?: AccionToast) =
   const unidades = carrito.reduce((s, l) => s + (l.producto.unidad === 'kg' ? 1 : l.cantidad), 0)
 
   function agregar(p: Producto) {
+    vibrar()
+    setRebotando(p.id)
+    window.setTimeout(() => setRebotando((r) => (r === p.id ? null : r)), 300)
     setCarrito((c) => {
       const clave = `p-${p.id}`
       const i = c.findIndex((l) => l.clave === clave)
@@ -133,6 +139,7 @@ export function Vender({ avisar }: { avisar: (m: string, accion?: AccionToast) =
       setVerCarrito(false)
       setClientePre(undefined)
       void sonarCobro()
+      vibrar(30)
       const vuelto = metodo === 'efectivo' && pagoCon != null ? redondear(pagoCon - total) : 0
       const deshacer: AccionToast = {
         label: 'Deshacer',
@@ -144,7 +151,7 @@ export function Vender({ avisar }: { avisar: (m: string, accion?: AccionToast) =
           }
         },
       }
-      avisar(vuelto > 0 ? `Venta registrada · Vuelto ${soles(vuelto)}` : `Venta registrada · ${soles(total)}`, deshacer)
+      setListo({ total, vuelto, metodo: metodo === 'efectivo' ? '' : (METODOS.find((m) => m.id === metodo)?.label ?? ''), deshacer: () => void deshacer.fn() })
     } catch (e) {
       avisar((e as Error).message)
     }
@@ -156,7 +163,7 @@ export function Vender({ avisar }: { avisar: (m: string, accion?: AccionToast) =
         <input
           type="search"
           inputMode="search"
-          placeholder="Buscar producto o escanear código…"
+          placeholder="Buscar producto…"
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
           onKeyDown={(e) => {
@@ -164,10 +171,12 @@ export function Vender({ avisar }: { avisar: (m: string, accion?: AccionToast) =
           }}
         />
         <Microfono onTexto={(t) => setBusqueda(t)} />
-        <button className="btn-secundario btn-cuadrado" title="Escanear con la cámara" aria-label="Escanear con la cámara" onClick={() => setEscaneando(true)}>📷</button>
-        <button className="btn-secundario btn-cuadrado" title="Venta rápida sin producto" aria-label="Venta rápida" onClick={() => setVentaRapida(true)}>S/</button>
-        <button className="btn-secundario btn-cuadrado" title="Lo de siempre de un cliente" aria-label="Clientes" onClick={() => setVerClientes(true)}>👤</button>
-        <button className="btn-secundario btn-cuadrado" title="Calcular vuelto sin registrar venta" aria-label="Calcular vuelto" onClick={() => setCalculadora(true)}>🧮</button>
+      </div>
+      <div className="atajos">
+        <button className="atajo" title="Escanear con la cámara" aria-label="Escanear con la cámara" onClick={() => setEscaneando(true)}><span>📷</span>Escanear</button>
+        <button className="atajo" title="Venta rápida sin producto" aria-label="Venta rápida" onClick={() => setVentaRapida(true)}><span>S/</span>Otro monto</button>
+        <button className="atajo" title="Lo de siempre de un cliente" aria-label="Clientes" onClick={() => setVerClientes(true)}><span>👤</span>Cliente</button>
+        <button className="atajo" title="Calcular vuelto sin registrar venta" aria-label="Calcular vuelto" onClick={() => setCalculadora(true)}><span>🧮</span>Vuelto</button>
       </div>
       <div className="chips">
         {categorias.map((c) => (
@@ -177,6 +186,13 @@ export function Vender({ avisar }: { avisar: (m: string, accion?: AccionToast) =
         ))}
       </div>
 
+      {!hayVentas && carrito.length === 0 && visibles.length > 0 && (
+        <div className="pista" role="note">
+          <span className="pista-icono">👇</span>
+          <span>Toca lo que te piden. Si son dos, tócalo dos veces. Luego el botón verde para cobrar.</span>
+        </div>
+      )}
+
       <div className="grilla-productos">
         {visibles.map((p) => {
           const lineasDeEste = carrito.filter((l) => l.producto.id === p.id)
@@ -184,13 +200,13 @@ export function Vender({ avisar }: { avisar: (m: string, accion?: AccionToast) =
           const agotado = p.stock <= 0
           const bajo = !agotado && p.stock <= p.stockMinimo
           return (
-            <div key={p.id} className={'tarjeta-producto' + (enCarrito ? ' seleccionado' : '') + (agotado ? ' agotado' : '')}>
+            <div key={p.id} className={'tarjeta-producto' + (enCarrito ? ' seleccionado' : '') + (agotado ? ' agotado' : '') + (rebotando === p.id ? ' rebota' : '')}>
               <button className="tp-principal" onClick={() => agregar(p)}>
-                <IconoProducto p={p} tam={40} />
+                <IconoProducto p={p} tam={44} />
                 <span className="tp-nombre">{p.nombre}</span>
                 <span className="tp-precio">{soles(p.precioVenta)}{p.unidad === 'kg' ? '/kg' : ''}</span>
                 <span className={'tp-stock' + (bajo ? ' bajo' : '') + (agotado ? ' cero' : '')}>{agotado ? 'Sin stock' : `${p.stock} ${p.unidad}`}</span>
-                {enCarrito && <span className="tp-badge">{enCarrito.cantidad}</span>}
+                {enCarrito ? <span className="tp-badge">{enCarrito.cantidad}</span> : <span className="tp-mas" aria-hidden="true">+</span>}
               </button>
               {p.paquetes && p.paquetes.length > 0 && (
                 <div className="tp-paquetes">
@@ -214,10 +230,11 @@ export function Vender({ avisar }: { avisar: (m: string, accion?: AccionToast) =
 
       {carrito.length > 0 && (
         <div className="barra-cobro">
-          <button className="btn-secundario" onClick={() => setVerCarrito(true)}>🛒 {unidades} {unidades === 1 ? 'ítem' : 'ítems'}</button>
-          <button className="btn-primario grande" onClick={() => setCobrando(true)}>Cobrar {soles(total)}</button>
+          <button className="btn-secundario btn-carrito" onClick={() => setVerCarrito(true)} aria-label={`Ver carrito, ${unidades} ${unidades === 1 ? 'ítem' : 'ítems'}`}>🛒 <b key={unidades}>{unidades}</b></button>
+          <button className="btn-cobrar" onClick={() => setCobrando(true)}>Cobrar {soles(total)}</button>
         </div>
       )}
+      <ConfirmacionVenta venta={listo} onCerrar={() => setListo(null)} />
 
       {verCarrito && (
         <Modal titulo="Carrito" onCerrar={() => setVerCarrito(false)}>
@@ -240,7 +257,7 @@ export function Vender({ avisar }: { avisar: (m: string, accion?: AccionToast) =
           <div className="fila-total"><span>Total</span><strong>{soles(total)}</strong></div>
           <div className="acciones">
             <button className="btn-secundario" onClick={() => { setCarrito([]); setVerCarrito(false) }}>Vaciar</button>
-            <button className="btn-primario" onClick={() => { setVerCarrito(false); setCobrando(true) }}>Cobrar</button>
+            <button className="btn-cobrar" onClick={() => { setVerCarrito(false); setCobrando(true) }}>Cobrar</button>
           </div>
         </Modal>
       )}
@@ -326,11 +343,18 @@ function Cobrar({ total, clientes, deudas, clienteInicial, medios, onCerrar, onC
 
   const listo = metodo !== 'fiado' ? metodo !== 'efectivo' || vuelto >= 0 : Boolean(clienteId) || nuevoCliente.trim().length > 0
 
+  const nombreMetodo = METODOS.find((m) => m.id === metodo)?.label ?? ''
+
   return (
-    <Modal titulo={`Cobrar ${soles(total)}`} onCerrar={onCerrar}>
+    <Modal titulo="Cobrar" onCerrar={onCerrar}>
+      <div className="total-cobro">
+        <span>Total a cobrar</span>
+        <strong>{soles(total)}</strong>
+      </div>
+      <div className="paso listo"><span className="paso-num">1</span><span>¿Cómo te paga?</span></div>
       <div className="metodos">
         {METODOS.map((m) => (
-          <button key={m.id} className={'metodo' + (metodo === m.id ? ' activo' : '')} onClick={() => setMetodo(m.id)}>
+          <button key={m.id} className={'metodo' + (metodo === m.id ? ' activo' : '')} onClick={() => { vibrar(); setMetodo(m.id) }}>
             <span>{m.icono}</span>
             {m.label}
           </button>
@@ -339,18 +363,19 @@ function Cobrar({ total, clientes, deudas, clienteInicial, medios, onCerrar, onC
 
       {metodo === 'efectivo' && (
         <div className="bloque">
-          <Campo label="¿Con cuánto paga?">
-            <input type="number" inputMode="decimal" step="0.1" min={0} placeholder={total.toFixed(2)} value={pagoCon} onChange={(e) => setPagoCon(e.target.value)} />
-          </Campo>
-          <div className="chips">
-            <button className={'chip' + (pagoCon === '' ? ' activo' : '')} onClick={() => setPagoCon('')}>Exacto</button>
+          <div className={'paso' + (pagoCon !== '' ? ' listo' : '')}><span className="paso-num">2</span><span>¿Con cuánto te paga?</span></div>
+          <div className="billetes">
+            <button className={'billete' + (pagoCon === '' ? ' activo' : '')} onClick={() => setPagoCon('')}>Exacto</button>
             {sugeridos.map((b) => (
-              <button key={b} className={'chip' + (Number(pagoCon) === b ? ' activo' : '')} onClick={() => setPagoCon(String(b))}>S/ {b}</button>
+              <button key={b} className={'billete' + (Number(pagoCon) === b ? ' activo' : '')} onClick={() => { vibrar(); setPagoCon(String(b)) }}>S/ {b}</button>
             ))}
           </div>
+          <Campo label="U otro monto" >
+            <input type="number" inputMode="decimal" step="0.1" min={0} placeholder={total.toFixed(2)} value={pagoCon} onChange={(e) => setPagoCon(e.target.value)} />
+          </Campo>
           <div className={'vuelto' + (vuelto < 0 ? ' negativo' : '')}>
-            <span>Vuelto</span>
-            <strong>{vuelto < 0 ? `Faltan ${soles(-vuelto)}` : soles(vuelto)}</strong>
+            <span>{vuelto < 0 ? 'Falta' : vuelto === 0 ? 'Vuelto' : 'Le das de vuelto'}</span>
+            <strong>{vuelto < 0 ? soles(-vuelto) : soles(vuelto)}</strong>
           </div>
         </div>
       )}
@@ -387,8 +412,9 @@ function Cobrar({ total, clientes, deudas, clienteInicial, medios, onCerrar, onC
 
       {metodo === 'fiado' && (
         <div className="bloque">
+          <div className={'paso' + (listo ? ' listo' : '')}><span className="paso-num">2</span><span>¿A quién le fías?</span></div>
           {clientes.length > 0 && (
-            <Campo label="¿A quién le fías?">
+            <Campo label="Cliente">
               <select value={clienteId ?? ''} onChange={(e) => setClienteId(e.target.value || undefined)}>
                 <option value="">— Elegir —</option>
                 {clientes.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
@@ -408,7 +434,8 @@ function Cobrar({ total, clientes, deudas, clienteInicial, medios, onCerrar, onC
         </div>
       )}
 
-      <button className="btn-primario grande ancho" disabled={!listo || guardando} onClick={confirmar}>
+      <div className="paso"><span className="paso-num">{metodo === 'efectivo' || metodo === 'fiado' ? 3 : 2}</span><span>{metodo === 'fiado' ? 'Anota el fiado' : `Confirma el cobro${nombreMetodo && metodo !== 'efectivo' ? ` por ${nombreMetodo}` : ''}`}</span></div>
+      <button className="btn-cobrar ancho" disabled={!listo || guardando} onClick={confirmar}>
         {metodo === 'fiado' ? `Anotar fiado ${soles(total)}` : `Confirmar ${soles(total)}`}
       </button>
     </Modal>

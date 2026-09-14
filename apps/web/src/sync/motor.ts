@@ -185,19 +185,23 @@ let temporizador: number | undefined
 export function sincronizar(): Promise<void> {
   if (enCurso) return enCurso
   enCurso = (async () => {
-    if (!(await getConfig(K.token))) return
-    if ((await getConfig(K.sesion)) === 'cerrada') return // hasta que la dueña entre de nuevo
-    if (!navigator.onLine) return
-    await setConfig(K.estado, 'sincronizando')
     try {
-      await subir()
-      await bajar()
-      await setConfig(K.ultimoSync, ahoraISO())
-      await setConfig(K.error, '')
-    } catch (e) {
-      await setConfig(K.error, (e as Error).message)
+      // Sin cuenta, con la sesión cerrada o sin red no hay nada que hacer, pero el candado se suelta igual.
+      if (!(await getConfig(K.token))) return
+      if ((await getConfig(K.sesion)) === 'cerrada') return // hasta que la dueña entre de nuevo
+      if (!navigator.onLine) return
+      await setConfig(K.estado, 'sincronizando')
+      try {
+        await subir()
+        await bajar()
+        await setConfig(K.ultimoSync, ahoraISO())
+        await setConfig(K.error, '')
+      } catch (e) {
+        await setConfig(K.error, (e as Error).message)
+      } finally {
+        await setConfig(K.estado, '')
+      }
     } finally {
-      await setConfig(K.estado, '')
       enCurso = null
     }
   })()

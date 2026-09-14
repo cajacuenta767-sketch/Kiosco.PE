@@ -46,7 +46,7 @@ export function Nube({ avisar, nombreBodega }: { avisar: (m: string) => void; no
 
   return (
     <>
-      <h3 className="subtitulo">Mi cuenta y la nube</h3>
+      <h3 className="seccion-titulo"><span aria-hidden="true">☁️</span>Mi cuenta y la nube</h3>
       {!estado.activa ? (
         <>
           <p className="nota">Con tu cuenta, tus datos quedan respaldados solos, puedes atender desde dos celulares y, si pierdes el tuyo, recuperas todo con tu número y tu PIN. Es opcional: sin cuenta, todo sigue funcionando en este celular.</p>

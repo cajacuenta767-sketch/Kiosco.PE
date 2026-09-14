@@ -80,16 +80,16 @@ export function Bienvenida({ onListo }: { onListo: () => void }) {
       {paso === 'inicio' && (
         <div className="bienvenida-cuerpo">
           <button className="opcion principal" onClick={() => ir('registro')}>
-            <strong>☁️ Crear mi cuenta</strong>
-            <span>Con tu celular y un PIN. Tus datos quedan respaldados y entras desde cualquier teléfono.</span>
+            <span className="opcion-icono" aria-hidden="true">☁️</span>
+            <span className="opcion-texto"><strong>Crear mi cuenta</strong><span>Con tu celular y un PIN. Tus datos quedan respaldados y entras desde cualquier teléfono.</span></span>
           </button>
           <button className="opcion" onClick={() => ir('entrar')}>
-            <strong>🔑 Ya tengo cuenta: entrar</strong>
-            <span>Con tu número y PIN, o con un código del otro celular.</span>
+            <span className="opcion-icono" aria-hidden="true">🔑</span>
+            <span className="opcion-texto"><strong>Ya tengo cuenta: entrar</strong><span>Con tu número y PIN, o con un código del otro celular.</span></span>
           </button>
           <button className="opcion" onClick={() => ir('local')}>
-            <strong>📱 Empezar sin cuenta</strong>
-            <span>Solo en este celular. Puedes crear tu cuenta después desde Más.</span>
+            <span className="opcion-icono" aria-hidden="true">📱</span>
+            <span className="opcion-texto"><strong>Empezar sin cuenta</strong><span>Solo en este celular. Puedes crear tu cuenta después desde Más.</span></span>
           </button>
         </div>
       )}

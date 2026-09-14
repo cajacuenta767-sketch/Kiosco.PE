@@ -71,6 +71,11 @@ export function Caja({ avisar, ayudante = false }: { avisar: (m: string) => void
           {!ayudante && <>Ganancia <b className={gananciaNeta >= 0 ? 'texto-ok' : 'texto-peligro'}>{soles(gananciaNeta)}</b> · </>}{r.numVentas} {r.numVentas === 1 ? 'venta' : 'ventas'}
           {totalGastos > 0 && !ayudante && <> · gastos {soles(totalGastos)}</>}
         </span>
+        {!ayudante && r.numVentas > 0 && (
+          <span className={'hero-frase' + (gananciaNeta > 0 ? '' : ' neutro')}>
+            {gananciaNeta > 0 ? `De cada S/ 10 vendidos, te quedan S/ ${(Math.max(0, (gananciaNeta / r.totalVentas) * 10)).toFixed(2)}` : 'Hoy los gastos se comieron la ganancia'}
+          </span>
+        )}
       </div>
 
       <div className="metodos-resumen">
