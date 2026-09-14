@@ -5,6 +5,7 @@ const shot = capturas()
 
 // Bodega de ejemplo con movimiento desde la bienvenida
 const page = await celular(browser, 'A', errores, { conEjemplo: false })
+await page.getByRole('button', { name: /Empezar sin cuenta/ }).click()
 await page.getByPlaceholder(/Doña Carmen/).fill('Bodega Doña Carmen')
 await page.getByRole('button', { name: /bodega de ejemplo con movimiento/ }).click()
 await page.getByText('Inca Kola 500ml').waitFor({ timeout: 20000 })
@@ -34,6 +35,7 @@ await page.getByText(/Venta registrada/).waitFor()
 await shot(page, '53-deshacer')
 await page.getByRole('button', { name: 'Deshacer' }).click()
 await page.getByText(/Venta deshecha/).waitFor()
+await page.getByRole('button', { name: /Inca Kola 500ml/ }).locator('.tp-stock', { hasText: antes }).waitFor({ timeout: 5000 }).catch(() => {})
 const despues = await page.getByRole('button', { name: /Inca Kola 500ml/ }).locator('.tp-stock').innerText()
 esperar(antes === despues, `deshacer devuelve el stock (${antes} → ${despues})`)
 

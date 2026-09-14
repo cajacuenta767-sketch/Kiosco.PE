@@ -13,7 +13,12 @@ const K = {
   ultimoSync: 'nube.ultimoSync',
   error: 'nube.error',
   estado: 'nube.estado',
+  telefono: 'nube.telefono',
+  sesion: 'nube.sesion',
 } as const
+
+/** Mensaje que ve la dueña cuando otro celular cerró la sesión de este. */
+export const SESION_CERRADA = 'La sesión de este celular se cerró desde otro celular. Entra de nuevo con tu número y PIN.'
 
 const LOTE = 200
 
@@ -27,9 +32,13 @@ export interface EstadoNube {
   activa: boolean
   url: string
   bodegaId?: string
+  /** Celular de la cuenta, enmascarado. Vacío si la bodega aún no tiene número y PIN. */
+  telefono?: string
   ultimoSync?: string
   error?: string
   sincronizando: boolean
+  /** Otro celular cerró esta sesión: hay token guardado pero ya no sirve. */
+  sesionCerrada: boolean
 }
 
 /** Lee el estado (para useLiveQuery). */
@@ -40,9 +49,11 @@ export async function leerEstado(): Promise<EstadoNube> {
     activa: Boolean(m[K.token]),
     url: m[K.url] || urlPorDefecto(),
     bodegaId: m[K.bodegaId],
+    telefono: m[K.telefono] || undefined,
     ultimoSync: m[K.ultimoSync],
     error: m[K.error],
     sincronizando: m[K.estado] === 'sincronizando',
+    sesionCerrada: m[K.sesion] === 'cerrada',
   }
 }
 
@@ -53,8 +64,15 @@ async function pedir<T>(ruta: string, opts: { metodo?: string; cuerpo?: unknown;
     method: opts.metodo ?? 'GET',
     headers: { ...(opts.cuerpo != null ? { 'content-type': 'application/json' } : {}), ...(token ? { authorization: `Bearer ${token}` } : {}) },
     body: opts.cuerpo != null ? JSON.stringify(opts.cuerpo) : undefined,
+  }).catch(() => {
+    throw new Error('No se pudo conectar con la nube. Revisa tu internet e inténtalo de nuevo.')
   })
-  const datos = (await r.json().catch(() => ({}))) as { error?: string }
+  const datos = (await r.json().catch(() => ({}))) as { error?: string; codigo?: string }
+  if (r.status === 401 && datos.codigo === 'sesion_cerrada' && token) {
+    // El token de este celular ya no existe en la nube: lo cerraron desde otro celular. Se deja de sincronizar hasta entrar de nuevo.
+    await setConfig(K.sesion, 'cerrada')
+    throw new Error(SESION_CERRADA)
+  }
   if (!r.ok) throw new Error(datos.error || `Error ${r.status} del servidor`)
   return datos as T
 }
@@ -67,6 +85,8 @@ async function guardarSesion(url: string, s: RespuestaRegistro) {
     await setConfig(K.dispositivoId, s.dispositivoId)
     await setConfig(K.desde, '0')
     await setConfig(K.error, '')
+    await setConfig(K.sesion, '')
+    await setConfig(K.telefono, s.telefono ?? '')
     if (s.nombre) await setConfig('nombreBodega', s.nombre)
   })
 }
@@ -128,7 +148,14 @@ export async function leerCuenta(): Promise<CuentaNube> {
 }
 
 export async function configurarAcceso(telefono: string, pin: string) {
-  await pedir('/v1/bodegas/actual/acceso', { metodo: 'PUT', cuerpo: { telefono, pin } })
+  const r = await pedir<{ telefono: string | null }>('/v1/bodegas/actual/acceso', { metodo: 'PUT', cuerpo: { telefono, pin } })
+  await setConfig(K.telefono, r.telefono ?? '')
+}
+
+/** Comprueba el PIN de la cuenta en la nube sin abrir otra sesión (para entrar si se olvidó el PIN local). */
+export async function verificarPinCuenta(pin: string): Promise<void> {
+  if (!navigator.onLine) throw new Error('Necesitas internet para comprobar el PIN de tu cuenta')
+  await pedir('/v1/bodegas/actual/verificar-pin', { metodo: 'POST', cuerpo: { pin } })
 }
 
 export async function cerrarSesionDispositivo(id: string) {
@@ -158,18 +185,23 @@ let temporizador: number | undefined
 export function sincronizar(): Promise<void> {
   if (enCurso) return enCurso
   enCurso = (async () => {
-    if (!(await getConfig(K.token))) return
-    if (!navigator.onLine) return
-    await setConfig(K.estado, 'sincronizando')
     try {
-      await subir()
-      await bajar()
-      await setConfig(K.ultimoSync, ahoraISO())
-      await setConfig(K.error, '')
-    } catch (e) {
-      await setConfig(K.error, (e as Error).message)
+      // Sin cuenta, con la sesión cerrada o sin red no hay nada que hacer, pero el candado se suelta igual.
+      if (!(await getConfig(K.token))) return
+      if ((await getConfig(K.sesion)) === 'cerrada') return // hasta que la dueña entre de nuevo
+      if (!navigator.onLine) return
+      await setConfig(K.estado, 'sincronizando')
+      try {
+        await subir()
+        await bajar()
+        await setConfig(K.ultimoSync, ahoraISO())
+        await setConfig(K.error, '')
+      } catch (e) {
+        await setConfig(K.error, (e as Error).message)
+      } finally {
+        await setConfig(K.estado, '')
+      }
     } finally {
-      await setConfig(K.estado, '')
       enCurso = null
     }
   })()

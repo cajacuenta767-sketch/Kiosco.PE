@@ -8,7 +8,10 @@ export async function abrirNavegador() {
   return chromium.launch({ executablePath, args: ['--no-sandbox'] })
 }
 
-/** Abre la app en un "celular" nuevo (contexto aislado, IndexedDB propio) y pasa la bienvenida con el catálogo de ejemplo. */
+/**
+ * Abre la app en un "celular" nuevo (contexto aislado, IndexedDB propio). Con `conEjemplo`, pasa la bienvenida
+ * sin cuenta y con el catálogo de ejemplo; sin él, se queda en la primera pantalla (crear cuenta / entrar / sin cuenta).
+ */
 export async function celular(browser, nombre, errores, { conEjemplo = true } = {}) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, locale: 'es-PE' })
   const page = await ctx.newPage()
@@ -17,8 +20,10 @@ export async function celular(browser, nombre, errores, { conEjemplo = true } = 
   page.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) errores.push(`${nombre} console: ${m.text()}`) })
   page.on('dialog', (d) => d.accept())
   await page.goto(BASE + '/')
-  await page.getByText('¿Cómo se llama tu bodega?').waitFor()
+  await page.getByRole('button', { name: /Empezar sin cuenta/ }).waitFor()
   if (conEjemplo) {
+    await page.getByRole('button', { name: /Empezar sin cuenta/ }).click()
+    await page.getByText('¿Cómo se llama tu bodega?').waitFor()
     await page.getByRole('button', { name: 'Empezar con productos de ejemplo' }).click()
     await page.getByText('Inca Kola 500ml').waitFor()
   }

@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db, type CategoriaGasto, type Gasto, type Venta } from '../db/db'
+import { db, type CategoriaGasto, type Gasto, type MetodoPago, type Venta } from '../db/db'
 import { CATEGORIAS_GASTO, METODOS, anularVenta, cerrarCaja, eliminarGasto, registrarGasto, resumirVentas, textoResumenSemana } from '../lib/acciones'
-import { aDia, diaLabel, fechaCorta, fechaLarga, gastosOperativos, hora, hoyISO, mesLabel, redondear, resumirMes, soles, textoComprobante } from '@sencillo/shared'
+import { aDia, detalleVendido, diaLabel, fechaCorta, fechaLarga, gastosOperativos, hora, hoyISO, mesLabel, redondear, resumirMes, soles, textoComprobante, textoDetalleVendido } from '@sencillo/shared'
 import { Campo, Modal, Vacio } from '../components/ui'
 
 export function Caja({ avisar, ayudante = false }: { avisar: (m: string) => void; ayudante?: boolean }) {
@@ -30,6 +30,12 @@ export function Caja({ avisar, ayudante = false }: { avisar: (m: string) => void
   const [cerrando, setCerrando] = useState(false)
   const [detalle, setDetalle] = useState<Venta | null>(null)
   const [verMes, setVerMes] = useState(false)
+  const [verVendido, setVerVendido] = useState(false)
+  const [filtroMetodo, setFiltroMetodo] = useState<MetodoPago | null>(null)
+  const clientes = useLiveQuery(() => db.clientes.toArray(), []) ?? []
+  const nombreCliente = (id?: string) => (id ? clientes.find((c) => c.id === id)?.nombre : undefined)
+  const ventasVisibles = filtroMetodo ? ventasDia.filter((v) => v.metodoPago === filtroMetodo) : ventasDia
+  const vendido = useMemo(() => detalleVendido(ventasDia), [ventasDia])
   const mes = dia.slice(0, 7)
   const ventasMes = useLiveQuery(() => db.ventas.where('dia').between(`${mes}-01`, `${mes}-31`, true, true).toArray(), [mes]) ?? []
   const gastosMes = useLiveQuery(() => db.gastos.where('dia').between(`${mes}-01`, `${mes}-31`, true, true).toArray(), [mes]) ?? []
@@ -71,14 +77,26 @@ export function Caja({ avisar, ayudante = false }: { avisar: (m: string) => void
           {!ayudante && <>Ganancia <b className={gananciaNeta >= 0 ? 'texto-ok' : 'texto-peligro'}>{soles(gananciaNeta)}</b> · </>}{r.numVentas} {r.numVentas === 1 ? 'venta' : 'ventas'}
           {totalGastos > 0 && !ayudante && <> · gastos {soles(totalGastos)}</>}
         </span>
+        {!ayudante && r.numVentas > 0 && (
+          <span className={'hero-frase' + (gananciaNeta > 0 ? '' : ' neutro')}>
+            {gananciaNeta > 0 ? `De cada S/ 10 vendidos, te quedan S/ ${(Math.max(0, (gananciaNeta / r.totalVentas) * 10)).toFixed(2)}` : 'Hoy los gastos se comieron la ganancia'}
+          </span>
+        )}
       </div>
 
       <div className="metodos-resumen">
         {METODOS.map((m) => (
-          <div key={m.id} className={'mr' + (r.porMetodo[m.id] > 0 ? '' : ' apagado')}>
+          <button
+            key={m.id}
+            className={'mr' + (r.porMetodo[m.id] > 0 ? '' : ' apagado') + (filtroMetodo === m.id ? ' activo' : '')}
+            disabled={r.porMetodo[m.id] <= 0}
+            aria-pressed={filtroMetodo === m.id}
+            title={`Ver solo las ventas por ${m.label}`}
+            onClick={() => setFiltroMetodo((f) => (f === m.id ? null : m.id))}
+          >
             <span>{m.icono} {m.label}</span>
             <strong>{soles(r.porMetodo[m.id])}</strong>
-          </div>
+          </button>
         ))}
         <div className={'mr' + (cobradoFiado > 0 ? '' : ' apagado')}>
           <span>✅ Fiados cobrados</span>
@@ -144,22 +162,34 @@ export function Caja({ avisar, ayudante = false }: { avisar: (m: string) => void
               </li>
             ))}
           </ul>
+          <button className="btn-secundario ancho" onClick={() => setVerVendido(true)}>📋 Ver todo lo vendido, producto por producto ({vendido.productos.length})</button>
         </>
       )}
 
-      <h3 className="subtitulo">Ventas del día</h3>
+      <h3 className="subtitulo con-accion">
+        <span>Ventas del día · {ventasVisibles.length}{filtroMetodo ? ` por ${METODOS.find((m) => m.id === filtroMetodo)?.label}` : ''}</span>
+        {filtroMetodo && <button className="btn-enlace" onClick={() => setFiltroMetodo(null)}>Ver todas</button>}
+      </h3>
       {ventasDia.length === 0 ? (
         <Vacio icono="🧾" titulo="Sin ventas este día" texto="Las ventas que registres en Vender aparecerán aquí." />
       ) : (
         <ul className="lista compacta">
-          {ventasDia.map((v) => (
-            <li key={v.id} className="fila-simple clic" onClick={() => setDetalle(v)}>
-              <span>
-                {hora(v.fecha)} · {METODOS.find((m) => m.id === v.metodoPago)?.icono} {v.items.map((i) => `${i.cantidad} ${i.nombre}`).join(', ')}
-              </span>
-              <strong>{soles(v.total)}</strong>
-            </li>
-          ))}
+          {ventasVisibles.map((v) => {
+            const metodo = METODOS.find((m) => m.id === v.metodoPago)
+            const cliente = v.metodoPago === 'fiado' ? nombreCliente(v.clienteId) : undefined
+            return (
+              <li key={v.id} className="fila-simple clic venta" onClick={() => setDetalle(v)}>
+                <div className="venta-info">
+                  <span className="venta-cab">
+                    <b>{hora(v.fecha)}</b>
+                    <em className={'pill' + (v.metodoPago === 'fiado' ? ' alerta' : '')}>{metodo?.icono} {metodo?.label}{cliente ? ` · ${cliente}` : ''}</em>
+                  </span>
+                  <span className="venta-items">{v.items.map((i) => `${i.cantidad} ${i.nombre}`).join(' · ')}</span>
+                </div>
+                <strong>{soles(v.total)}</strong>
+              </li>
+            )
+          })}
         </ul>
       )}
 
@@ -183,6 +213,24 @@ export function Caja({ avisar, ayudante = false }: { avisar: (m: string) => void
           {detalle.vuelto != null && detalle.vuelto > 0 && <p className="nota">Pagó con {soles(detalle.pagoCon!)} · vuelto {soles(detalle.vuelto)}</p>}
           <a className="btn-whatsapp" href={`https://wa.me/?text=${encodeURIComponent(textoComprobante(detalle, nombreBodega, METODOS.find((m) => m.id === detalle.metodoPago)?.label ?? ''))}`} target="_blank" rel="noreferrer">💬 Enviar comprobante por WhatsApp</a>
           {!ayudante && <button className="btn-peligro ancho" onClick={() => anular(detalle)}>Anular venta</button>}
+        </Modal>
+      )}
+      {verVendido && (
+        <Modal titulo={`Todo lo vendido · ${dia === hoy ? 'hoy' : fechaCorta(dia)}`} onCerrar={() => setVerVendido(false)}>
+          <p className="nota">{vendido.productos.length} {vendido.productos.length === 1 ? 'producto distinto' : 'productos distintos'} · {vendido.unidades} unidades en {r.numVentas} {r.numVentas === 1 ? 'venta' : 'ventas'}. De mayor a menor plata.</p>
+          <ul className="tabla-vendido">
+            <li className="tv-cab"><span>Producto</span><span>Cant.</span><span>Vendido</span>{!ayudante && <span>Ganaste</span>}</li>
+            {vendido.productos.map((l) => (
+              <li key={l.nombre}>
+                <span className="tv-nombre">{l.nombre}</span>
+                <span>{l.cantidad}</span>
+                <strong>{soles(l.total)}</strong>
+                {!ayudante && <span className={l.ganancia >= 0 ? 'texto-ok' : 'texto-peligro'}>{soles(l.ganancia)}</span>}
+              </li>
+            ))}
+            <li className="tv-total"><span>Total</span><span>{vendido.unidades}</span><strong>{soles(vendido.total)}</strong>{!ayudante && <strong className="texto-ok">{soles(vendido.ganancia)}</strong>}</li>
+          </ul>
+          <a className="btn-whatsapp" href={`https://wa.me/?text=${encodeURIComponent(textoDetalleVendido(nombreBodega, dia === hoy ? 'hoy' : `el ${fechaLarga(dia)}`, vendido))}`} target="_blank" rel="noreferrer">💬 Compartir por WhatsApp</a>
         </Modal>
       )}
       {verMes && (

@@ -79,64 +79,74 @@ export function Ajustes({ avisar, ayudante = false }: { avisar: (m: string) => v
 
   return (
     <div className="pantalla">
-      <h3 className="subtitulo">Mi bodega</h3>
-      <Campo label="Nombre de tu bodega" ayuda="Aparece en los recordatorios de WhatsApp">
-        <div className="buscador con-boton">
-          <input type="text" placeholder="Ej. Bodega Doña Carmen" value={nombre} onChange={(e) => setNombre(e.target.value)} />
-          <button className="btn-primario" onClick={guardarNombre}>Guardar</button>
+      <section className="seccion">
+        <h3 className="seccion-titulo"><span aria-hidden="true">🏪</span>Mi bodega</h3>
+        <Campo label="Nombre de tu bodega" ayuda="Aparece en los recordatorios de WhatsApp">
+          <div className="buscador con-boton">
+            <input type="text" placeholder="Ej. Bodega Doña Carmen" value={nombre} onChange={(e) => setNombre(e.target.value)} />
+            <button className="btn-primario" onClick={guardarNombre}>Guardar</button>
+          </div>
+        </Campo>
+      </section>
+
+      <section className="seccion">
+        <h3 className="seccion-titulo"><span aria-hidden="true">📲</span>Cobros con Yape y Plin</h3>
+        <p className="nota">Sube la captura de tu QR y escribe tu número. Al cobrar con Yape o Plin, se lo muestras al cliente en grande para que escanee.</p>
+        <MediosPago avisar={avisar} />
+      </section>
+
+      <section className="seccion">
+        <Nube avisar={avisar} nombreBodega={nombreGuardado} />
+      </section>
+
+      <section className="seccion">
+        <h3 className="seccion-titulo"><span aria-hidden="true">🔐</span>Tu PIN y quién entra</h3>
+        <p className="nota">Un PIN de 4 números que solo tú sepas. Sirve para pedirlo al abrir la app y para el modo ayudante.</p>
+        <div className="acciones-col">
+          <button className="btn-secundario ancho" onClick={() => setModalPin('crear')}>{tienePin ? '🔐 Cambiar PIN' : '🔐 Crear mi PIN'}</button>
+          <label className={'check' + (tienePin ? '' : ' apagado')}>
+            <input type="checkbox" disabled={!tienePin} checked={bloqueo} onChange={async (e) => { const activar = e.target.checked; await setConfig('bloqueo', activar ? '1' : '0'); avisar(activar ? 'Al abrir la app pedirá tu PIN' : 'La app abrirá sin PIN') }} />
+            <span>Pedir mi PIN al abrir la app</span>
+          </label>
+          <button className="btn-primario ancho" disabled={!tienePin} onClick={async () => { await cambiarModo('ayudante'); avisar('Modo ayudante activado') }}>👩‍👧 Entrar en modo ayudante</button>
+          <p className="nota">En modo ayudante, tu hijo o sobrina vende y cobra fiados, pero no ve tus ganancias ni cambia precios. Se sale con tu PIN.</p>
         </div>
-      </Campo>
+      </section>
 
-      <h3 className="subtitulo">Cobros con Yape y Plin</h3>
-      <p className="nota">Sube la captura de tu QR y escribe tu número. Al cobrar con Yape o Plin, se lo muestras al cliente en grande para que escanee.</p>
-      <MediosPago avisar={avisar} />
-
-      <Nube avisar={avisar} nombreBodega={nombreGuardado} />
-
-      <h3 className="subtitulo">Tu PIN y quién entra</h3>
-      <p className="nota">Un PIN de 4 números que solo tú sepas. Sirve para pedirlo al abrir la app y para el modo ayudante.</p>
-      <div className="acciones-col">
-        <button className="btn-secundario ancho" onClick={() => setModalPin('crear')}>{tienePin ? '🔐 Cambiar PIN' : '🔐 Crear mi PIN'}</button>
-        <label className={'check' + (tienePin ? '' : ' apagado')}>
-          <input type="checkbox" disabled={!tienePin} checked={bloqueo} onChange={(e) => { setConfig('bloqueo', e.target.checked ? '1' : '0'); avisar(e.target.checked ? 'Al abrir la app pedirá tu PIN' : 'La app abrirá sin PIN') }} />
-          <span>Pedir mi PIN al abrir la app</span>
+      <section className="seccion">
+        <h3 className="seccion-titulo"><span aria-hidden="true">🎨</span>Cómo se ve</h3>
+        <div className="chips">
+          {([['auto', '📱 Como el celular'], ['claro', '☀️ Claro'], ['oscuro', '🌙 Oscuro']] as const).map(([id, label]) => (
+            <button key={id} className={'chip' + (tema === id ? ' activo' : '')} onClick={() => setConfig('tema', id)}>{label}</button>
+          ))}
+        </div>
+        <div className="chips">
+          {([['normal', '🔤 Letra normal'], ['grande', '🔠 Letra grande']] as const).map(([id, label]) => (
+            <button key={id} className={'chip' + (letra === id ? ' activo' : '')} onClick={() => setConfig('letra', id)}>{label}</button>
+          ))}
+        </div>
+        <label className="check">
+          <input type="checkbox" checked={sonido === '1'} onChange={(e) => setConfig('sonido', e.target.checked ? '1' : '0')} />
+          <span>Sonido al cobrar</span>
         </label>
-        <button className="btn-primario ancho" disabled={!tienePin} onClick={async () => { await cambiarModo('ayudante'); avisar('Modo ayudante activado') }}>👩‍👧 Entrar en modo ayudante</button>
-        <p className="nota">En modo ayudante, tu hijo o sobrina vende y cobra fiados, pero no ve tus ganancias ni cambia precios. Se sale con tu PIN.</p>
-      </div>
+      </section>
 
-      <h3 className="subtitulo">Apariencia</h3>
-      <div className="chips">
-        {([['auto', '📱 Como el celular'], ['claro', '☀️ Claro'], ['oscuro', '🌙 Oscuro']] as const).map(([id, label]) => (
-          <button key={id} className={'chip' + (tema === id ? ' activo' : '')} onClick={() => setConfig('tema', id)}>{label}</button>
-        ))}
-      </div>
-      <div className="chips">
-        {([['normal', '🔤 Letra normal'], ['grande', '🔠 Letra grande']] as const).map(([id, label]) => (
-          <button key={id} className={'chip' + (letra === id ? ' activo' : '')} onClick={() => setConfig('letra', id)}>{label}</button>
-        ))}
-      </div>
-      <label className="check">
-        <input type="checkbox" checked={sonido === '1'} onChange={(e) => setConfig('sonido', e.target.checked ? '1' : '0')} />
-        <span>Sonido al cobrar</span>
-      </label>
-
-      <h3 className="subtitulo">Tus datos</h3>
-      <p className="nota">
-        Todo se guarda <strong>en este celular</strong>, funciona sin internet.
-        {conteos && ` Tienes ${conteos.productos} productos, ${conteos.ventas} ventas y ${conteos.clientes} clientes registrados.`}
-      </p>
-      <div className="acciones-col">
-        <button className="btn-secundario ancho" onClick={exportar}>⬇️ Descargar respaldo</button>
-        <button className="btn-secundario ancho" onClick={() => fileRef.current?.click()}>⬆️ Restaurar desde respaldo</button>
-        <input ref={fileRef} type="file" accept="application/json" hidden onChange={(e) => e.target.files?.[0] && importar(e.target.files[0])} />
-        <button className="btn-secundario ancho" onClick={async () => { await sembrarSiVacio(); avisar('Catálogo de ejemplo cargado (solo si no tenías productos)') }}>📦 Cargar catálogo de ejemplo</button>
-        <button className="btn-secundario ancho" onClick={async () => { await sembrarDemo(); avisar('Bodega de ejemplo cargada (solo si no tenías productos)') }}>👀 Bodega de ejemplo con 2 semanas de ventas</button>
-        <button className="btn-peligro ancho" onClick={reiniciar}>🗑️ Borrar todo</button>
-      </div>
-
-      <h3 className="subtitulo">Consejo</h3>
-      <p className="nota">Descarga un respaldo cada semana y guárdalo en tu WhatsApp o Google Drive. Si cambias de celular, restáuralo y sigues donde te quedaste.</p>
+      <section className="seccion">
+        <h3 className="seccion-titulo"><span aria-hidden="true">💾</span>Tus datos</h3>
+        <p className="nota">
+          Todo se guarda <strong>en este celular</strong>, funciona sin internet.
+          {conteos && ` Tienes ${conteos.productos} productos, ${conteos.ventas} ventas y ${conteos.clientes} clientes registrados.`}
+        </p>
+        <div className="acciones-col">
+          <button className="btn-secundario ancho" onClick={exportar}>⬇️ Descargar respaldo</button>
+          <button className="btn-secundario ancho" onClick={() => fileRef.current?.click()}>⬆️ Restaurar desde respaldo</button>
+          <input ref={fileRef} type="file" accept="application/json" hidden onChange={(e) => e.target.files?.[0] && importar(e.target.files[0])} />
+          <button className="btn-secundario ancho" onClick={async () => { await sembrarSiVacio(); avisar('Catálogo de ejemplo cargado (solo si no tenías productos)') }}>📦 Cargar catálogo de ejemplo</button>
+          <button className="btn-secundario ancho" onClick={async () => { await sembrarDemo(); avisar('Bodega de ejemplo cargada (solo si no tenías productos)') }}>👀 Bodega de ejemplo con 2 semanas de ventas</button>
+          <button className="btn-peligro ancho" onClick={reiniciar}>🗑️ Borrar todo</button>
+        </div>
+        <p className="nota">💡 Descarga un respaldo cada semana y guárdalo en tu WhatsApp o Google Drive. Si cambias de celular, restáuralo y sigues donde te quedaste.</p>
+      </section>
 
       <p className="pie">Sencillo v0.8 · Hecho para las bodegas del Perú 🇵🇪</p>
       {modalPin === 'crear' && <CrearPin onCerrar={() => setModalPin(null)} onOk={() => { setModalPin(null); avisar('PIN guardado') }} />}

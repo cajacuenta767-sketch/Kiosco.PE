@@ -96,7 +96,20 @@ export default function App() {
 
   if (!listo) return <div className="cargando">Cargando tu bodega…</div>
   if (bienvenida) return <Bienvenida onListo={() => setBienvenida(false)} />
-  if (bloqueado) return <Bloqueo nombreBodega={nombre ?? ''} modo={modo} onEntrar={async (como) => { await cambiarModo(como); setBloqueado(false) }} />
+  if (bloqueado) {
+    return (
+      <Bloqueo
+        nombreBodega={nombre ?? ''}
+        modo={modo}
+        nubeActiva={Boolean(nube?.activa && !nube.sesionCerrada)}
+        onEntrar={async (como, recuperado) => {
+          await cambiarModo(como)
+          setBloqueado(false)
+          if (recuperado) avisar('Entraste con el PIN de tu cuenta. Cambia tu PIN de la app en Más.')
+        }}
+      />
+    )
+  }
 
   return (
     <div className="app">
@@ -108,7 +121,7 @@ export default function App() {
         <div className="cab-derecha">
           <button className="cab-ayuda" onClick={() => setGuia(true)} aria-label="¿Cómo se usa?" title="¿Cómo se usa?">?</button>
           {nube?.activa && (
-            <button className={'cab-nube' + (nube.error ? ' error' : pendientes > 0 || nube.sincronizando ? ' pendiente' : ' ok')} onClick={() => setTab('ajustes')} title={nube.error ? `Sin conexión: ${nube.error}` : pendientes > 0 ? `${pendientes} cambios por subir` : 'Nube al día'} aria-label="Estado de la nube">
+            <button className={'cab-nube' + (nube.error ? ' error' : pendientes > 0 || nube.sincronizando ? ' pendiente' : ' ok')} onClick={() => setTab('ajustes')} title={nube.sesionCerrada ? 'Sesión cerrada: entra de nuevo' : nube.error ? `Sin conexión: ${nube.error}` : pendientes > 0 ? `${pendientes} cambios por subir` : 'Nube al día'} aria-label="Estado de la nube">
               ☁️{pendientes > 0 && <span>{pendientes}</span>}
             </button>
           )}
@@ -116,6 +129,14 @@ export default function App() {
         </div>
       </header>
 
+      {nube?.sesionCerrada && tab !== 'ajustes' && (
+        <div className="aviso-cierre" role="status">
+          <span>🔒 La sesión de la nube en este celular se cerró. Tus ventas siguen guardándose aquí.</span>
+          <div className="aviso-cierre-acciones">
+            <button className="btn-primario" onClick={() => setTab('ajustes')}>Entrar de nuevo</button>
+          </div>
+        </div>
+      )}
       {mostrarAvisoCierre && (
         <div className="aviso-cierre" role="status">
           <span>🌙 Ya es de noche y vendiste {soles(totalHoy)}. ¿Cerramos la caja?</span>

@@ -47,22 +47,26 @@ export function Stock({ avisar, ayudante = false }: { avisar: (m: string) => voi
   return (
     <div className="pantalla">
       <div className="kpis">
-        <div className="kpi">
-          <span className="kpi-label">Productos</span>
+        <div className={'kpi' + (filtro === 'todos' ? ' activo' : '')} onClick={() => setFiltro('todos')} role="button">
+          <span className="kpi-icono">📦</span>
           <strong>{activos.length}</strong>
+          <span className="kpi-label">Productos</span>
         </div>
-        <div className="kpi alerta" onClick={() => setFiltro('bajo')} role="button">
-          <span className="kpi-label">Por acabarse</span>
+        <div className={'kpi alerta' + (filtro === 'bajo' ? ' activo' : '')} onClick={() => setFiltro('bajo')} role="button">
+          <span className="kpi-icono">⚠️</span>
           <strong>{bajos.length}</strong>
+          <span className="kpi-label">Por acabarse</span>
         </div>
-        <div className="kpi peligro" onClick={() => setFiltro('agotado')} role="button">
-          <span className="kpi-label">Agotados</span>
+        <div className={'kpi peligro' + (filtro === 'agotado' ? ' activo' : '')} onClick={() => setFiltro('agotado')} role="button">
+          <span className="kpi-icono">⛔</span>
           <strong>{agotados.length}</strong>
+          <span className="kpi-label">Agotados</span>
         </div>
         {lotes.length > 0 && (
-          <div className="kpi alerta" onClick={() => setFiltro('vence')} role="button">
-            <span className="kpi-label">Por vencer</span>
+          <div className={'kpi alerta' + (filtro === 'vence' ? ' activo' : '')} onClick={() => setFiltro('vence')} role="button">
+            <span className="kpi-icono">⏰</span>
             <strong>{lotePorProducto.size}</strong>
+            <span className="kpi-label">Por vencer</span>
           </div>
         )}
       </div>

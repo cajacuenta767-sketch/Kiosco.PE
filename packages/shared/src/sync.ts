@@ -19,11 +19,14 @@ export interface RespuestaPull {
   hayMas: boolean
 }
 
+/** Lo que recibe un celular al crear la cuenta, entrar con número y PIN o canjear un código. */
 export interface RespuestaRegistro {
   bodegaId: string
   dispositivoId: string
   token: string
   nombre: string
+  /** Celular de la cuenta, enmascarado ("987 *** 321"). Null si la bodega aún no tiene número y PIN. */
+  telefono?: string | null
 }
 
 /** Identificador global, igual en el celular y en la nube. */

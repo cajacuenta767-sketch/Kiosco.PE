@@ -89,7 +89,7 @@ await A.getByRole('button', { name: 'Caja', exact: true }).click()
 console.log('A: caja', (await A.locator('.hero-cifra').innerText()).replace(/\n/g, ' '))
 await A.getByRole('button', { name: 'Fiados', exact: true }).click()
 await A.getByRole('button', { name: /Don Pepe/ }).waitFor()
-console.log('A: fiados', (await A.locator('.kpis').innerText()).replace(/\n/g, ' '))
+console.log('A: fiados', (await A.locator('.hero-cifra').innerText()).replace(/\n/g, ' '))
 await shot(A, '35-a-fiados-desde-b')
 
 // Anulación en A se refleja en B

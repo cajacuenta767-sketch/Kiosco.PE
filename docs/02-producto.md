@@ -15,8 +15,10 @@
 ## Los módulos
 
 ### 👋 Bienvenida (solo la primera vez)
-- Nombre de la bodega y tres caminos: empezar con 28 productos de ejemplo, empezar desde cero, o vincular este celular a una bodega que ya usa Sencillo.
-- Sin cuenta, sin correo, sin permisos. En 10 segundos está vendiendo.
+- Pantalla de entrada clásica: arriba el **login** (celular y PIN, o un código del otro celular); abajo **crear mi cuenta**
+  (nombre de la bodega, celular y PIN; opcionalmente con 28 productos de ejemplo) y **empezar sin cuenta** (solo en este
+  celular: productos de ejemplo, desde cero o una bodega de ejemplo con movimiento).
+- Sin correo, sin permisos. Si al registrarse no hay internet, puede seguir sin cuenta y crearla después desde Más.
 
 ### 🛒 Vender
 - Cuadrícula de productos con nombre, precio y stock visible. Los que se acaban se ven en ámbar; los agotados, en rojo.
@@ -55,7 +57,8 @@
 - Desglose por método de pago: cuánto hay en efectivo, cuánto entró por Yape, cuánto se fió.
 - Gráfico de los últimos 7 días, con el total vendido y ganado en la semana.
 - Lo más vendido del día.
-- Lista de ventas del día. Tocar una muestra el detalle, permite enviar un **comprobante por WhatsApp** y anularla (el stock vuelve y el fiado se borra).
+- Lista de ventas del día con hora, método, a quién se fió y todos sus productos. Tocar una muestra el detalle, permite enviar un **comprobante por WhatsApp** y anularla (el stock vuelve y el fiado se borra). Tocar una tarjeta de método (Efectivo, Yape…) deja solo esas ventas.
+- **Todo lo vendido, producto por producto:** tabla del día con cantidad, plata vendida y ganancia por producto, con el total al pie y envío por WhatsApp.
 - **Resumen de la semana por WhatsApp** y **aviso de noche** ("¿Cerramos la caja?") si vendió y no cerró.
 - **Resumen del mes:** vendido, ganancia neta, gastos, promedio diario, mejor día, fiado otorgado y cobrado, lo más vendido.
 - **Gastos del día** con categoría y si salieron de caja. La ganancia mostrada es neta de gastos del negocio (luz, pasajes, personal); los pagos a proveedores no la bajan porque son mercadería ya descontada como costo en cada venta, pero sí cuentan para el cuadre de caja.
@@ -68,11 +71,13 @@
 
 ### 🔐 Acceso (dentro de Más)
 - **PIN de dueña** de 4 números. Con "Pedir mi PIN al abrir la app" nadie entra sin él; si el modo ayudante está activo, el ayudante entra sin PIN pero solo a vender, ver stock y cobrar fiados.
+  Si lo olvida y tiene cuenta, "¿Olvidaste tu PIN?" la deja entrar con el PIN de la cuenta (con internet).
 - **Cuenta en la nube = celular + PIN.** Sin correo. Entra desde cualquier celular con esos dos datos; tras 5 intentos fallidos la cuenta se bloquea 15 minutos.
 - **Mis celulares:** lista de celulares conectados y "Cerrar sesión" para el que se perdió. Cambiar número o PIN de la cuenta.
+- **Sesión cerrada desde otro celular:** la app lo avisa, deja de sincronizar y ofrece "Entrar de nuevo"; las ventas siguen guardándose en el celular.
 
-### ☁️ Nube (dentro de Más)
-- Crear la cuenta con el nombre de la bodega, el celular y un PIN: este celular queda como el primero.
+### ☁️ Mi cuenta y la nube (dentro de Más)
+- Crear la cuenta con el nombre de la bodega, el celular y un PIN (el mismo formulario que en la bienvenida): este celular queda como el primero. "Cerrar sesión en este celular" conserva los datos locales.
 - Sumar otro celular con un código de 6 dígitos que vale 10 minutos. Los dos venden sobre el mismo stock.
 - Estado siempre visible: todo respaldado, cambios por subir, o sin conexión (y sigue funcionando).
 

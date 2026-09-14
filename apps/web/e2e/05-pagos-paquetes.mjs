@@ -15,6 +15,7 @@ esperar((await page.locator('.tp-badge').first().innerText()) === '6', 'el six-p
 await page.getByRole('button', { name: /Cobrar S\/ 39[.,]00/ }).click()
 await page.getByRole('button', { name: /^Confirmar/ }).click()
 await page.getByText(/Venta registrada · S\/ 39[.,]00/).waitFor()
+await pilsen.locator('.tp-stock', { hasText: '6 und' }).waitFor({ timeout: 5000 }).catch(() => {})
 const stockDespues = await pilsen.locator('.tp-stock').innerText()
 esperar(stockAntes === '12 und' && stockDespues === '6 und', `el stock baja 6 (${stockAntes} → ${stockDespues})`)
 
