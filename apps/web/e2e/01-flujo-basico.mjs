@@ -66,13 +66,15 @@ await page.getByLabel(/Registrar abono/).fill('3')
 await page.getByRole('button', { name: /Abonar S\/ 3[.,]00/ }).click()
 await page.getByText(/Abono de S\/ 3[.,]00 registrado/).waitFor()
 await shot('12-fiado-abono')
-await page.getByRole('button', { name: 'Cerrar' }).click()
+await page.getByRole('button', { name: 'Cerrar', exact: true }).click()
 
 // Caja
 await page.getByRole('button', { name: 'Caja', exact: true }).click()
 await page.getByText('Vendiste').waitFor()
 await shot('13-caja')
 // Detalle de lo vendido: cada venta con sus productos, filtro por método y tabla producto por producto
+await page.locator('.fila-simple.venta').nth(2).waitFor()
+await page.locator('.fila-simple.venta', { hasText: 'Don Pepe' }).waitFor()
 esperar((await page.locator('.fila-simple.venta').count()) === 3, 'la caja lista las 3 ventas del día')
 esperar((await page.locator('.fila-simple.venta', { hasText: 'Don Pepe' }).count()) === 1, 'la venta fiada muestra a quién se fió')
 await page.locator('.mr', { hasText: 'Yape' }).click()

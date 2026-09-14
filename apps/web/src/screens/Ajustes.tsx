@@ -105,7 +105,7 @@ export function Ajustes({ avisar, ayudante = false }: { avisar: (m: string) => v
         <div className="acciones-col">
           <button className="btn-secundario ancho" onClick={() => setModalPin('crear')}>{tienePin ? '🔐 Cambiar PIN' : '🔐 Crear mi PIN'}</button>
           <label className={'check' + (tienePin ? '' : ' apagado')}>
-            <input type="checkbox" disabled={!tienePin} checked={bloqueo} onChange={(e) => { setConfig('bloqueo', e.target.checked ? '1' : '0'); avisar(e.target.checked ? 'Al abrir la app pedirá tu PIN' : 'La app abrirá sin PIN') }} />
+            <input type="checkbox" disabled={!tienePin} checked={bloqueo} onChange={async (e) => { const activar = e.target.checked; await setConfig('bloqueo', activar ? '1' : '0'); avisar(activar ? 'Al abrir la app pedirá tu PIN' : 'La app abrirá sin PIN') }} />
             <span>Pedir mi PIN al abrir la app</span>
           </label>
           <button className="btn-primario ancho" disabled={!tienePin} onClick={async () => { await cambiarModo('ayudante'); avisar('Modo ayudante activado') }}>👩‍👧 Entrar en modo ayudante</button>
