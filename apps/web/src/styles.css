@@ -369,14 +369,19 @@ strong { font-weight: 800; }
 .toast-accion { color: var(--acento); font-weight: 900; text-transform: uppercase; font-size: 13px; letter-spacing: 0.04em; padding: 4px 6px; min-height: 32px; }
 
 /* ── Bienvenida y bloqueo ─────────────────────────────────────────────── */
-.bienvenida { min-height: 100dvh; display: flex; flex-direction: column; justify-content: center; gap: 22px; padding: 32px 20px; max-width: 480px; margin: 0 auto; }
+.bienvenida { min-height: 100dvh; display: flex; flex-direction: column; justify-content: center; gap: 18px; padding: 24px 20px; max-width: 480px; margin: 0 auto; }
 .bienvenida-cab { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; }
 .bienvenida-cab img { border-radius: 22px; box-shadow: var(--sombra-alta); }
-.bienvenida-cab h1 { font-size: 34px; font-weight: 900; letter-spacing: -0.02em; }
-.bienvenida-cab p { color: var(--texto-suave); font-size: 16px; font-weight: 600; max-width: 320px; }
+.bienvenida-cab h1 { font-size: 30px; font-weight: 900; letter-spacing: -0.02em; }
+.bienvenida-cab p { color: var(--texto-suave); font-size: 15px; font-weight: 600; max-width: 320px; }
 .bienvenida-cuerpo { display: flex; flex-direction: column; gap: 12px; }
 .bienvenida .btn-enlace { text-align: center; }
 .bienvenida-titulo { font-size: 24px; font-weight: 900; text-align: center; letter-spacing: -0.01em; }
+.tarjeta-login { display: flex; flex-direction: column; gap: 12px; background: var(--superficie); border-radius: 22px; padding: 18px 16px; box-shadow: var(--sombra); border: 1px solid var(--borde); }
+.tarjeta-login .bienvenida-titulo { font-size: 21px; }
+.tarjeta-login .btn-enlace { text-align: center; }
+.separador { display: flex; align-items: center; gap: 12px; color: var(--texto-suave); font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 6px; }
+.separador::before, .separador::after { content: ''; flex: 1; height: 1px; background: var(--borde); }
 .opcion { display: flex; align-items: center; gap: 14px; text-align: left; width: 100%; min-height: 76px; padding: 14px 16px; background: var(--superficie); border: 2px solid var(--borde); border-radius: var(--radio); box-shadow: var(--sombra); transition: transform var(--anim); }
 .opcion:active { transform: scale(0.97); }
 .opcion-icono { font-size: 32px; line-height: 1; flex-shrink: 0; width: 44px; text-align: center; }

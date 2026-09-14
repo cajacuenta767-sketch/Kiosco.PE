@@ -29,16 +29,16 @@ for (let i = 0; i < 4; i++) {
 }
 
 // ── B entra desde la bienvenida con número y PIN (celular nuevo, sin código) ──
+// El login está de frente en la bienvenida: número y PIN arriba, crear cuenta o sin cuenta abajo
 const B = await celular(browser, 'B', errores, { conEjemplo: false })
-await B.getByRole('button', { name: /Ya tengo cuenta/ }).click()
 await B.getByPlaceholder('9xxxxxxxx').fill('987654321')
 await B.getByLabel('PIN de la cuenta').fill('0000')
-await B.getByRole('button', { name: /Entrar y bajar mis datos/ }).click()
+await B.getByRole('button', { name: 'Entrar', exact: true }).click()
 await B.getByText(/Número o PIN incorrectos/).waitFor()
 esperar(true, 'PIN equivocado no entra')
 await B.getByLabel('PIN de la cuenta').fill('2468')
 await shot(B, '71-entrar-con-pin')
-await B.getByRole('button', { name: /Entrar y bajar mis datos/ }).click()
+await B.getByRole('button', { name: 'Entrar', exact: true }).click()
 await B.getByText('Inca Kola 500ml').waitFor({ timeout: 20000 })
 esperar((await B.locator('.cabecera h1').innerText()) === 'Bodega Carmen', 'B entra a la bodega de A con número y PIN')
 esperar((await B.getByRole('button', { name: /Inca Kola 500ml/ }).locator('.tp-stock').innerText()) === '23 und', 'B baja el stock real (23 tras la venta de A)')

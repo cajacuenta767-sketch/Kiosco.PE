@@ -83,11 +83,13 @@ export function FormRegistro({ nombreInicial = '', url, ocupado, error, textoBot
 export type ViaLogin = 'pin' | 'codigo'
 
 /** Entrar: con número y PIN (desde cualquier celular) o con el código de 6 dígitos que da otro celular ya dentro. */
-export function FormLogin({ url, ocupado, error, viaInicial = 'pin', textoEntrar = 'Entrar', textoVincular = 'Vincular', onEntrar, onVincular }: {
+export function FormLogin({ url, ocupado, error, viaInicial = 'pin', modo = 'chips', textoEntrar = 'Entrar', textoVincular = 'Vincular', onEntrar, onVincular }: {
   url: string
   ocupado: boolean
   error?: string
   viaInicial?: ViaLogin
+  /** `chips`: las dos vías como pestañas. `enlaces`: número y PIN de frente, y un enlace para cambiar al código. */
+  modo?: 'chips' | 'enlaces'
   textoEntrar?: string
   textoVincular?: string
   onEntrar: (url: string, telefono: string, pin: string) => void
@@ -104,13 +106,15 @@ export function FormLogin({ url, ocupado, error, viaInicial = 'pin', textoEntrar
   const vincular = () => listoCodigo && onVincular(limpiarUrl(servidor), codigo)
   return (
     <>
-      <div className="chips">
-        <button type="button" className={'chip' + (via === 'pin' ? ' activo' : '')} onClick={() => setVia('pin')}>🔑 Con mi número y PIN</button>
-        <button type="button" className={'chip' + (via === 'codigo' ? ' activo' : '')} onClick={() => setVia('codigo')}>📱 Con código del otro celular</button>
-      </div>
+      {modo === 'chips' && (
+        <div className="chips">
+          <button type="button" className={'chip' + (via === 'pin' ? ' activo' : '')} onClick={() => setVia('pin')}>🔑 Con mi número y PIN</button>
+          <button type="button" className={'chip' + (via === 'codigo' ? ' activo' : '')} onClick={() => setVia('codigo')}>📱 Con código del otro celular</button>
+        </div>
+      )}
       {via === 'pin' ? (
         <>
-          <p className="nota">El número y el PIN con los que creaste tu cuenta. Sirve aunque hayas perdido el otro celular.</p>
+          {modo === 'chips' && <p className="nota">El número y el PIN con los que creaste tu cuenta. Sirve aunque hayas perdido el otro celular.</p>}
           <Campo label="Tu celular">
             <input autoFocus type="tel" inputMode="numeric" maxLength={9} placeholder="9xxxxxxxx" autoComplete="tel-national" value={telefono} onChange={(e) => setTelefono(soloDigitos(e.target.value))} />
           </Campo>
@@ -126,14 +130,20 @@ export function FormLogin({ url, ocupado, error, viaInicial = 'pin', textoEntrar
           </Campo>
         </>
       )}
-      <ServidorAvanzado servidor={servidor} onCambio={setServidor} />
+      {modo === 'chips' && <ServidorAvanzado servidor={servidor} onCambio={setServidor} />}
       {error && <p className="texto-peligro" role="alert">{error}</p>}
       {via === 'pin' ? (
         <button className="btn-primario grande ancho" disabled={!listoPin} onClick={entrar}>{ocupado ? 'Entrando…' : textoEntrar}</button>
       ) : (
         <button className="btn-primario grande ancho" disabled={!listoCodigo} onClick={vincular}>{ocupado ? 'Vinculando…' : textoVincular}</button>
       )}
-      {via === 'pin' && <p className="nota centrado">¿Olvidaste tu PIN? Desde un celular que ya esté dentro de la bodega, en <strong>Más → Mi cuenta</strong> puedes cambiar el número o el PIN.</p>}
+      {modo === 'enlaces' && (
+        via === 'pin'
+          ? <button type="button" className="btn-enlace" onClick={() => setVia('codigo')}>📱 Tengo un código del otro celular</button>
+          : <button type="button" className="btn-enlace" onClick={() => setVia('pin')}>🔑 Entrar con mi número y PIN</button>
+      )}
+      {modo === 'enlaces' && <ServidorAvanzado servidor={servidor} onCambio={setServidor} />}
+      {via === 'pin' && modo === 'chips' && <p className="nota centrado">¿Olvidaste tu PIN? Desde un celular que ya esté dentro de la bodega, en <strong>Más → Mi cuenta</strong> puedes cambiar el número o el PIN.</p>}
     </>
   )
 }

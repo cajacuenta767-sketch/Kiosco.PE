@@ -6,11 +6,11 @@ import { activarNubeConAcceso, iniciarSesionNube, urlPorDefecto, vincularConCodi
 import { Campo } from '../components/ui'
 import { FormLogin, FormRegistro, nombreDelDispositivo, type DatosRegistro } from './Acceso'
 
-type Paso = 'inicio' | 'registro' | 'entrar' | 'local'
+type Paso = 'inicio' | 'registro' | 'local'
 
 /**
- * Primer arranque. Tres caminos: crear la cuenta (registro), entrar a una cuenta que ya existe (login)
- * o usar la app solo en este celular, sin cuenta. Se muestra una sola vez.
+ * Primer arranque: pantalla de entrada. Arriba, el login con número y PIN (o código del otro celular);
+ * abajo, crear la cuenta o empezar sin cuenta solo en este celular. Se muestra una sola vez.
  */
 export function Bienvenida({ onListo }: { onListo: () => void }) {
   const [paso, setPaso] = useState<Paso>('inicio')
@@ -72,25 +72,29 @@ export function Bienvenida({ onListo }: { onListo: () => void }) {
   return (
     <div className="bienvenida">
       <div className="bienvenida-cab">
-        <img src="/icon.svg" alt="" width={72} height={72} />
+        <img src="/icon.svg" alt="" width={64} height={64} />
         <h1>Sencillo</h1>
-        <p>Tu bodega, sencilla. Vende, controla tu stock y cobra tus fiados desde el celular, con o sin internet.</p>
+        <p>{paso === 'inicio' ? 'Tu bodega, sencilla. Vende, controla tu stock y cobra tus fiados desde el celular.' : 'Tu bodega, sencilla. Vende, controla tu stock y cobra tus fiados desde el celular, con o sin internet.'}</p>
       </div>
 
       {paso === 'inicio' && (
         <div className="bienvenida-cuerpo">
-          <button className="opcion principal" onClick={() => ir('registro')}>
-            <span className="opcion-icono" aria-hidden="true">☁️</span>
-            <span className="opcion-texto"><strong>Crear mi cuenta</strong><span>Con tu celular y un PIN. Tus datos quedan respaldados y entras desde cualquier teléfono.</span></span>
-          </button>
-          <button className="opcion" onClick={() => ir('entrar')}>
-            <span className="opcion-icono" aria-hidden="true">🔑</span>
-            <span className="opcion-texto"><strong>Ya tengo cuenta: entrar</strong><span>Con tu número y PIN, o con un código del otro celular.</span></span>
-          </button>
-          <button className="opcion" onClick={() => ir('local')}>
-            <span className="opcion-icono" aria-hidden="true">📱</span>
-            <span className="opcion-texto"><strong>Empezar sin cuenta</strong><span>Solo en este celular. Puedes crear tu cuenta después desde Más.</span></span>
-          </button>
+          <section className="tarjeta-login">
+            <h2 className="bienvenida-titulo">Entrar a mi bodega</h2>
+            <FormLogin
+              url={urlPorDefecto()}
+              ocupado={ocupado}
+              error={error}
+              modo="enlaces"
+              textoEntrar="Entrar"
+              textoVincular="Vincular este celular"
+              onEntrar={(url, telefono, pin) => entrar(() => iniciarSesionNube(url, telefono, pin, nombreDelDispositivo()))}
+              onVincular={(url, codigo) => entrar(() => vincularConCodigo(url, codigo, nombreDelDispositivo()))}
+            />
+          </section>
+          <div className="separador"><span>¿Primera vez en Sencillo?</span></div>
+          <button className="btn-secundario ancho" onClick={() => ir('registro')}>☁️ Crear mi cuenta</button>
+          <button className="btn-enlace" onClick={() => ir('local')}>Empezar sin cuenta, solo en este celular</button>
         </div>
       )}
 
@@ -104,22 +108,6 @@ export function Bienvenida({ onListo }: { onListo: () => void }) {
             </label>
           </FormRegistro>
           {error && <button className="btn-secundario ancho" disabled={ocupado} onClick={() => terminarLocal(conEjemplo)}>Empezar sin cuenta por ahora</button>}
-          <button className="btn-enlace" onClick={() => ir('inicio')}>Volver</button>
-        </div>
-      )}
-
-      {paso === 'entrar' && (
-        <div className="bienvenida-cuerpo">
-          <h2 className="bienvenida-titulo">Entrar a mi bodega</h2>
-          <FormLogin
-            url={urlPorDefecto()}
-            ocupado={ocupado}
-            error={error}
-            textoEntrar="Entrar y bajar mis datos"
-            textoVincular="Vincular y bajar mis datos"
-            onEntrar={(url, telefono, pin) => entrar(() => iniciarSesionNube(url, telefono, pin, nombreDelDispositivo()))}
-            onVincular={(url, codigo) => entrar(() => vincularConCodigo(url, codigo, nombreDelDispositivo()))}
-          />
           <button className="btn-enlace" onClick={() => ir('inicio')}>Volver</button>
         </div>
       )}

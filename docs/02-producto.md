@@ -15,9 +15,9 @@
 ## Los módulos
 
 ### 👋 Bienvenida (solo la primera vez)
-- Tres caminos: **crear mi cuenta** (nombre de la bodega, celular y PIN; opcionalmente con 28 productos de ejemplo),
-  **ya tengo cuenta: entrar** (número y PIN, o código del otro celular) o **empezar sin cuenta** (solo en este celular:
-  productos de ejemplo, desde cero o una bodega de ejemplo con movimiento).
+- Pantalla de entrada clásica: arriba el **login** (celular y PIN, o un código del otro celular); abajo **crear mi cuenta**
+  (nombre de la bodega, celular y PIN; opcionalmente con 28 productos de ejemplo) y **empezar sin cuenta** (solo en este
+  celular: productos de ejemplo, desde cero o una bodega de ejemplo con movimiento).
 - Sin correo, sin permisos. Si al registrarse no hay internet, puede seguir sin cuenta y crearla después desde Más.
 
 ### 🛒 Vender
