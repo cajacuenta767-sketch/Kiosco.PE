@@ -32,9 +32,10 @@ export function requerirSesion(db: DB) {
   return async (req: FastifyRequest, reply: FastifyReply) => {
     const cab = req.headers.authorization ?? ''
     const token = cab.startsWith('Bearer ') ? cab.slice(7) : ''
-    if (!token) return reply.code(401).send({ error: 'Falta el token del dispositivo' })
+    if (!token) return reply.code(401).send({ error: 'Falta el token del dispositivo', codigo: 'sin_sesion' })
     const d = await db.query.dispositivos.findFirst({ where: eq(dispositivos.tokenHash, hashToken(token)) })
-    if (!d) return reply.code(401).send({ error: 'Token inválido' })
+    // `codigo` deja que el celular distinga "me cerraron la sesión" de cualquier otro error.
+    if (!d) return reply.code(401).send({ error: 'La sesión de este celular se cerró', codigo: 'sesion_cerrada' })
     req.sesion = { bodegaId: d.bodegaId, dispositivoId: d.id }
   }
 }

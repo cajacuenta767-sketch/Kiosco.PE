@@ -288,6 +288,13 @@ a { color: var(--primario); }
 .bienvenida-cab p { color: var(--texto-suave); font-size: 15px; max-width: 320px; }
 .bienvenida-cuerpo { display: flex; flex-direction: column; gap: 12px; }
 .bienvenida .btn-enlace { text-align: center; }
+.bienvenida-titulo { font-size: 22px; text-align: center; letter-spacing: -0.01em; }
+.opcion { display: flex; flex-direction: column; align-items: flex-start; text-align: left; gap: 4px; width: 100%; min-height: 64px; padding: 14px 16px; background: var(--superficie); border: 2px solid var(--borde); border-radius: var(--radio); box-shadow: var(--sombra); }
+.opcion strong { font-size: 17px; }
+.opcion span { font-size: 14px; color: var(--texto-suave); line-height: 1.3; }
+.opcion.principal { border-color: var(--primario); }
+.opcion.principal strong { color: var(--primario); }
+.opcion:active { background: var(--fondo); }
 .centrado { text-align: center; }
 
 /* Íconos e imágenes de producto */

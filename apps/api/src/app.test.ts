@@ -118,6 +118,7 @@ test('login con número y PIN: entra, bloquea tras 5 fallos y permite cerrar ses
   const reg = await app.inject({ method: 'POST', url: '/api/v1/bodegas', payload: { nombre: 'Bodega Carmen', telefono: '987654321', pin: '2468', dispositivo: 'Celular A' } })
   assert.equal(reg.statusCode, 201)
   const a = json(reg)
+  assert.equal(a.telefono, '987 *** 321')
 
   // El mismo número no puede registrar otra bodega
   const dup = await app.inject({ method: 'POST', url: '/api/v1/bodegas', payload: { nombre: 'Otra', telefono: '987654321', pin: '1111' } })
@@ -136,6 +137,15 @@ test('login con número y PIN: entra, bloquea tras 5 fallos y permite cerrar ses
   const b = json(ok)
   assert.equal(b.bodegaId, a.bodegaId)
   assert.equal(b.nombre, 'Bodega Carmen')
+  assert.equal(b.telefono, '987 *** 321')
+
+  // Un celular ya dentro puede comprobar el PIN de la cuenta sin abrir otra sesión (para recuperar el PIN local)
+  const pinMal = await app.inject({ method: 'POST', url: '/api/v1/bodegas/actual/verificar-pin', headers: { authorization: `Bearer ${a.token}` }, payload: { pin: '0000' } })
+  assert.equal(pinMal.statusCode, 401)
+  assert.equal(json(pinMal).error, 'PIN incorrecto')
+  const pinBien = await app.inject({ method: 'POST', url: '/api/v1/bodegas/actual/verificar-pin', headers: { authorization: `Bearer ${a.token}` }, payload: { pin: '2468' } })
+  assert.equal(pinBien.statusCode, 200)
+  assert.equal(json(await app.inject({ method: 'GET', url: '/api/v1/bodegas/actual', headers: { authorization: `Bearer ${a.token}` } })).dispositivos.length, 2)
 
   // La cuenta muestra el número enmascarado y los dos celulares
   const yo = json(await app.inject({ method: 'GET', url: '/api/v1/bodegas/actual', headers: { authorization: `Bearer ${a.token}` } }))
@@ -149,6 +159,7 @@ test('login con número y PIN: entra, bloquea tras 5 fallos y permite cerrar ses
   assert.equal(cierre.statusCode, 200)
   const muerto = await app.inject({ method: 'GET', url: '/api/v1/sync/pull?desde=0', headers: { authorization: `Bearer ${b.token}` } })
   assert.equal(muerto.statusCode, 401)
+  assert.equal(json(muerto).codigo, 'sesion_cerrada')
   // No puede cerrarse a sí mismo por esta ruta
   const propio = await app.inject({ method: 'DELETE', url: `/api/v1/dispositivos/${a.dispositivoId}`, headers: { authorization: `Bearer ${a.token}` } })
   assert.equal(propio.statusCode, 400)
@@ -166,4 +177,14 @@ test('login con número y PIN: entra, bloquea tras 5 fallos y permite cerrar ses
   const bloqueado = await app.inject({ method: 'POST', url: '/api/v1/sesion', payload: { telefono: '999888777', pin: '135790' } })
   assert.equal(bloqueado.statusCode, 423)
   assert.match(json(bloqueado).error, /Espera/)
+  // El bloqueo también aplica al verificar el PIN desde dentro
+  const bloqueadoDentro = await app.inject({ method: 'POST', url: '/api/v1/bodegas/actual/verificar-pin', headers: { authorization: `Bearer ${a.token}` }, payload: { pin: '135790' } })
+  assert.equal(bloqueadoDentro.statusCode, 423)
+})
+
+test('una bodega sin número y PIN no puede verificar el PIN de la cuenta', async () => {
+  const reg = json(await app.inject({ method: 'POST', url: '/api/v1/bodegas', payload: { nombre: 'Sin acceso' } }))
+  assert.equal(reg.telefono, null)
+  const r = await app.inject({ method: 'POST', url: '/api/v1/bodegas/actual/verificar-pin', headers: { authorization: `Bearer ${reg.token}` }, payload: { pin: '1234' } })
+  assert.equal(r.statusCode, 404)
 })

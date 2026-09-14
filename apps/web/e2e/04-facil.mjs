@@ -5,6 +5,7 @@ const shot = capturas()
 
 // Bodega de ejemplo con movimiento desde la bienvenida
 const page = await celular(browser, 'A', errores, { conEjemplo: false })
+await page.getByRole('button', { name: /Empezar sin cuenta/ }).click()
 await page.getByPlaceholder(/Doña Carmen/).fill('Bodega Doña Carmen')
 await page.getByRole('button', { name: /bodega de ejemplo con movimiento/ }).click()
 await page.getByText('Inca Kola 500ml').waitFor({ timeout: 20000 })

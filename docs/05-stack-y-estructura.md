@@ -58,7 +58,10 @@ Principios:
    (por eso son inmutables). Dos celulares vendiendo a la vez nunca "pisan" el stock del otro.
 5. **Cuenta = celular + PIN.** Una bodega se registra con su nombre, el celular de la dueña y un PIN (`POST /v1/bodegas`)
    y recibe un token de dispositivo. Otro celular entra con código de 6 dígitos o con número y PIN (`POST /v1/sesion`).
-   El PIN se guarda con scrypt; 5 fallos bloquean la cuenta 15 minutos. Cada celular es una sesión que se puede cerrar.
+   El PIN se guarda con scrypt; 5 fallos bloquean la cuenta 15 minutos. Cada celular es una sesión que se puede cerrar:
+   la API responde `401` con `codigo: 'sesion_cerrada'` y el celular deja de sincronizar hasta que la dueña entre de nuevo.
+   Un celular ya dentro puede comprobar el PIN de la cuenta (`POST /v1/bodegas/actual/verificar-pin`) para recuperar el
+   acceso si olvidó el PIN local de la app.
 
 ## Estructura de carpetas
 
@@ -89,7 +92,7 @@ Sencillo/
 │   │       ├── sync/motor.ts    Motor de sincronización: activar nube, vincular, subir, bajar, aplicar.
 │   │       ├── lib/acciones.ts  Transacciones: registrar venta, ingresar stock, abonar, gastos, respaldo.
 │   │       ├── components/      Modal, Campo, Toast, Escáner de códigos con cámara.
-│   │       ├── screens/         Bienvenida · Bloqueo · Vender · Stock · Fiados · Caja · Ajustes · Nube.
+│   │       ├── screens/         Bienvenida · Acceso (registro y login) · Bloqueo · Vender · Stock · Fiados · Caja · Ajustes · Nube.
 │   │       ├── App.tsx          Pestañas, cabecera, tema.
 │   │       └── styles.css       Sistema de diseño (variables, modo oscuro, móvil primero).
 │   │

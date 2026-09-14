@@ -15,8 +15,10 @@
 ## Los módulos
 
 ### 👋 Bienvenida (solo la primera vez)
-- Nombre de la bodega y tres caminos: empezar con 28 productos de ejemplo, empezar desde cero, o vincular este celular a una bodega que ya usa Sencillo.
-- Sin cuenta, sin correo, sin permisos. En 10 segundos está vendiendo.
+- Tres caminos: **crear mi cuenta** (nombre de la bodega, celular y PIN; opcionalmente con 28 productos de ejemplo),
+  **ya tengo cuenta: entrar** (número y PIN, o código del otro celular) o **empezar sin cuenta** (solo en este celular:
+  productos de ejemplo, desde cero o una bodega de ejemplo con movimiento).
+- Sin correo, sin permisos. Si al registrarse no hay internet, puede seguir sin cuenta y crearla después desde Más.
 
 ### 🛒 Vender
 - Cuadrícula de productos con nombre, precio y stock visible. Los que se acaban se ven en ámbar; los agotados, en rojo.
@@ -68,11 +70,13 @@
 
 ### 🔐 Acceso (dentro de Más)
 - **PIN de dueña** de 4 números. Con "Pedir mi PIN al abrir la app" nadie entra sin él; si el modo ayudante está activo, el ayudante entra sin PIN pero solo a vender, ver stock y cobrar fiados.
+  Si lo olvida y tiene cuenta, "¿Olvidaste tu PIN?" la deja entrar con el PIN de la cuenta (con internet).
 - **Cuenta en la nube = celular + PIN.** Sin correo. Entra desde cualquier celular con esos dos datos; tras 5 intentos fallidos la cuenta se bloquea 15 minutos.
 - **Mis celulares:** lista de celulares conectados y "Cerrar sesión" para el que se perdió. Cambiar número o PIN de la cuenta.
+- **Sesión cerrada desde otro celular:** la app lo avisa, deja de sincronizar y ofrece "Entrar de nuevo"; las ventas siguen guardándose en el celular.
 
-### ☁️ Nube (dentro de Más)
-- Crear la cuenta con el nombre de la bodega, el celular y un PIN: este celular queda como el primero.
+### ☁️ Mi cuenta y la nube (dentro de Más)
+- Crear la cuenta con el nombre de la bodega, el celular y un PIN (el mismo formulario que en la bienvenida): este celular queda como el primero. "Cerrar sesión en este celular" conserva los datos locales.
 - Sumar otro celular con un código de 6 dígitos que vale 10 minutos. Los dos venden sobre el mismo stock.
 - Estado siempre visible: todo respaldado, cambios por subir, o sin conexión (y sigue funcionando).
 

@@ -28,6 +28,31 @@ const Vinculo = z.object({
 
 const MINUTOS_CODIGO = 10
 
+const VerificarPin = z.object({ pin: Pin })
+
+type Bodega = typeof bodegas.$inferSelect
+type ResultadoPin = { ok: true } | { ok: false; codigo: number; cuerpo: Record<string, unknown> }
+
+/**
+ * Comprueba el PIN de la cuenta llevando la cuenta de intentos: tras MAX_INTENTOS fallos la bodega
+ * queda bloqueada MINUTOS_BLOQUEO minutos, también para quien sí sabe el PIN.
+ */
+async function comprobarPin(db: DB, b: Bodega, pin: string, mensaje: string): Promise<ResultadoPin> {
+  if (!b.pinHash) return { ok: false, codigo: 401, cuerpo: { error: mensaje } }
+  if (b.bloqueadoHasta && b.bloqueadoHasta > new Date()) {
+    const min = Math.ceil((b.bloqueadoHasta.getTime() - Date.now()) / 60_000)
+    return { ok: false, codigo: 423, cuerpo: { error: `Demasiados intentos. Espera ${min} ${min === 1 ? 'minuto' : 'minutos'}.` } }
+  }
+  if (!verificarPin(pin, b.pinHash)) {
+    const intentos = b.intentosFallidos + 1
+    const bloquear = intentos >= MAX_INTENTOS
+    await db.update(bodegas).set({ intentosFallidos: bloquear ? 0 : intentos, bloqueadoHasta: bloquear ? new Date(Date.now() + MINUTOS_BLOQUEO * 60_000) : null }).where(eq(bodegas.id, b.id))
+    return { ok: false, codigo: 401, cuerpo: bloquear ? { error: `Demasiados intentos. Espera ${MINUTOS_BLOQUEO} minutos.` } : { error: mensaje, intentosRestantes: MAX_INTENTOS - intentos } }
+  }
+  await db.update(bodegas).set({ intentosFallidos: 0, bloqueadoHasta: null }).where(eq(bodegas.id, b.id))
+  return { ok: true }
+}
+
 export function rutasBodegas(app: FastifyInstance, db: DB) {
   const auth = requerirSesion(db)
 
@@ -44,7 +69,7 @@ export function rutasBodegas(app: FastifyInstance, db: DB) {
     const resultado = await db.transaction(async (tx) => {
       const [b] = await tx.insert(bodegas).values({ nombre: r.data.nombre, telefono: r.data.telefono, pinHash: r.data.pin ? hashPin(r.data.pin) : null }).returning()
       const [d] = await tx.insert(dispositivos).values({ bodegaId: b.id, nombre: r.data.dispositivo, tokenHash: hashToken(token) }).returning()
-      return { bodegaId: b.id, dispositivoId: d.id, nombre: b.nombre }
+      return { bodegaId: b.id, dispositivoId: d.id, nombre: b.nombre, telefono: enmascarar(b.telefono) }
     })
     return reply.code(201).send({ ...resultado, token })
   })
@@ -54,24 +79,27 @@ export function rutasBodegas(app: FastifyInstance, db: DB) {
     const r = Ingreso.safeParse(req.body)
     if (!r.success) return reply.code(400).send({ error: r.error.issues[0]?.message ?? 'Datos inválidos' })
     const b = await db.query.bodegas.findFirst({ where: eq(bodegas.telefono, r.data.telefono) })
-    const generico = { error: 'Número o PIN incorrectos' }
-    if (!b || !b.pinHash) return reply.code(401).send(generico)
-    if (b.bloqueadoHasta && b.bloqueadoHasta > new Date()) {
-      const min = Math.ceil((b.bloqueadoHasta.getTime() - Date.now()) / 60_000)
-      return reply.code(423).send({ error: `Demasiados intentos. Espera ${min} ${min === 1 ? 'minuto' : 'minutos'}.` })
-    }
-    if (!verificarPin(r.data.pin, b.pinHash)) {
-      const intentos = b.intentosFallidos + 1
-      const bloquear = intentos >= MAX_INTENTOS
-      await db.update(bodegas).set({ intentosFallidos: bloquear ? 0 : intentos, bloqueadoHasta: bloquear ? new Date(Date.now() + MINUTOS_BLOQUEO * 60_000) : null }).where(eq(bodegas.id, b.id))
-      return reply.code(401).send(bloquear ? { error: `Demasiados intentos. Espera ${MINUTOS_BLOQUEO} minutos.` } : { ...generico, intentosRestantes: MAX_INTENTOS - intentos })
-    }
+    const generico = 'Número o PIN incorrectos'
+    if (!b) return reply.code(401).send({ error: generico })
+    const pin = await comprobarPin(db, b, r.data.pin, generico)
+    if (!pin.ok) return reply.code(pin.codigo).send(pin.cuerpo)
     const token = generarToken()
-    const [d] = await db.transaction(async (tx) => {
-      await tx.update(bodegas).set({ intentosFallidos: 0, bloqueadoHasta: null }).where(eq(bodegas.id, b.id))
-      return tx.insert(dispositivos).values({ bodegaId: b.id, nombre: r.data.dispositivo, tokenHash: hashToken(token) }).returning()
-    })
-    return reply.code(201).send({ bodegaId: b.id, dispositivoId: d.id, nombre: b.nombre, token })
+    const [d] = await db.insert(dispositivos).values({ bodegaId: b.id, nombre: r.data.dispositivo, tokenHash: hashToken(token) }).returning()
+    return reply.code(201).send({ bodegaId: b.id, dispositivoId: d.id, nombre: b.nombre, telefono: enmascarar(b.telefono), token })
+  })
+
+  /**
+   * Un celular ya dentro comprueba el PIN de la cuenta sin crear otra sesión.
+   * Sirve para recuperar el acceso cuando la dueña olvidó el PIN local de la app.
+   */
+  app.post('/v1/bodegas/actual/verificar-pin', { preHandler: auth, config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (req, reply) => {
+    const r = VerificarPin.safeParse(req.body)
+    if (!r.success) return reply.code(400).send({ error: r.error.issues[0]?.message ?? 'Datos inválidos' })
+    const b = await db.query.bodegas.findFirst({ where: eq(bodegas.id, req.sesion!.bodegaId) })
+    if (!b || !b.pinHash) return reply.code(404).send({ error: 'Tu cuenta aún no tiene número y PIN' })
+    const pin = await comprobarPin(db, b, r.data.pin, 'PIN incorrecto')
+    if (!pin.ok) return reply.code(pin.codigo).send(pin.cuerpo)
+    return { ok: true }
   })
 
   /** Poner o cambiar el número y PIN de acceso de la bodega (desde un celular ya dentro). */
@@ -89,7 +117,7 @@ export function rutasBodegas(app: FastifyInstance, db: DB) {
   app.delete('/v1/dispositivos/:id', { preHandler: auth }, async (req, reply) => {
     const { bodegaId, dispositivoId } = req.sesion!
     const id = (req.params as { id: string }).id
-    if (id === dispositivoId) return reply.code(400).send({ error: 'Para este celular usa "Desconectar de la nube"' })
+    if (id === dispositivoId) return reply.code(400).send({ error: 'Para este celular usa "Cerrar sesión en este celular"' })
     const borrados = await db.delete(dispositivos).where(and(eq(dispositivos.id, id), eq(dispositivos.bodegaId, bodegaId))).returning()
     if (borrados.length === 0) return reply.code(404).send({ error: 'Ese celular no está en tu bodega' })
     return { ok: true }
@@ -139,7 +167,7 @@ export function rutasBodegas(app: FastifyInstance, db: DB) {
       await tx.update(codigosVinculo).set({ usado: true }).where(eq(codigosVinculo.codigo, c.codigo))
       const b = await tx.query.bodegas.findFirst({ where: eq(bodegas.id, c.bodegaId) })
       const [d] = await tx.insert(dispositivos).values({ bodegaId: c.bodegaId, nombre: r.data.dispositivo, tokenHash: hashToken(token) }).returning()
-      return { bodegaId: c.bodegaId, dispositivoId: d.id, nombre: b?.nombre ?? '' }
+      return { bodegaId: c.bodegaId, dispositivoId: d.id, nombre: b?.nombre ?? '', telefono: enmascarar(b?.telefono) }
     })
     if (!resultado) return reply.code(404).send({ error: 'Código inválido o vencido. Pide uno nuevo desde el otro celular.' })
     return reply.code(201).send({ ...resultado, token })
