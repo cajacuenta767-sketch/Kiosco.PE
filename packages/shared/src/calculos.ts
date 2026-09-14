@@ -41,6 +41,56 @@ export function resumirVentas(ventas: Venta[], dia: string): ResumenDia {
   }
 }
 
+export interface LineaVendida {
+  nombre: string
+  cantidad: number
+  /** Unidad: 'kg' si algún ítem se vendió por kilo (solo para mostrar). */
+  total: number
+  ganancia: number
+}
+
+export interface DetalleVendido {
+  productos: LineaVendida[]
+  unidades: number
+  total: number
+  ganancia: number
+}
+
+/** Todo lo vendido en un conjunto de ventas, producto por producto, de mayor a menor plata. */
+export function detalleVendido(ventas: Venta[]): DetalleVendido {
+  const m = new Map<string, LineaVendida>()
+  let unidades = 0
+  for (const v of ventas) {
+    for (const i of v.items) {
+      const l = m.get(i.nombre) ?? { nombre: i.nombre, cantidad: 0, total: 0, ganancia: 0 }
+      l.cantidad = redondear(l.cantidad + i.cantidad)
+      l.total = redondear(l.total + i.precio * i.cantidad)
+      l.ganancia = redondear(l.ganancia + (i.precio - i.costo) * i.cantidad)
+      m.set(i.nombre, l)
+      unidades += i.cantidad
+    }
+  }
+  const productos = [...m.values()].sort((a, b) => b.total - a.total || a.nombre.localeCompare(b.nombre))
+  return {
+    productos,
+    unidades: redondear(unidades),
+    total: redondear(productos.reduce((s, l) => s + l.total, 0)),
+    ganancia: redondear(productos.reduce((s, l) => s + l.ganancia, 0)),
+  }
+}
+
+/** Texto para WhatsApp con todo lo vendido de un día. */
+export function textoDetalleVendido(nombreBodega: string, etiquetaDia: string, d: DetalleVendido): string {
+  const fmt = (n: number) => `S/ ${n.toFixed(2)}`
+  return [
+    `🧾 ${nombreBodega || 'Mi bodega'} · lo vendido ${etiquetaDia}`,
+    '',
+    ...d.productos.map((l) => `• ${l.cantidad} ${l.nombre} — ${fmt(l.total)}`),
+    '',
+    `Total: ${fmt(d.total)} · ${d.productos.length} ${d.productos.length === 1 ? 'producto' : 'productos'}`,
+  ].join('\n')
+}
+
 /** Unidades vendidas por producto. */
 export function unidadesVendidas(ventas: Venta[]): Map<string, number> {
   const m = new Map<string, number>()

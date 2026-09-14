@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { deudaDe, pedidoSugerido, resumirVentas } from './calculos.ts'
+import { detalleVendido, deudaDe, pedidoSugerido, resumirVentas, textoDetalleVendido } from './calculos.ts'
 import type { Producto, Venta } from './tipos.ts'
 
 const producto = (p: Partial<Producto>): Producto => ({ id: 'p1', actualizadoEn: '', nombre: 'X', categoria: 'Otros', precioVenta: 3, precioCompra: 2.3, stock: 10, stockMinimo: 5, unidad: 'und', activo: true, creadoEn: '', ...p })
@@ -130,4 +130,20 @@ test('textoResumenSemana arma el mensaje con lo importante', async () => {
   assert.match(t, /Fiaste S\/ 30\.00 y cobraste S\/ 12\.00/)
   assert.match(t, /Mejor día: 9 set/)
   assert.match(t, /Pan \(5\), Pilsen \(3\)/)
+})
+
+test('detalleVendido junta el mismo producto de varias ventas y ordena por plata', () => {
+  const d = detalleVendido([
+    venta({ items: [{ productoId: 'p1', nombre: 'Inca Kola', cantidad: 2, precio: 3, costo: 2.3 }, { productoId: 'p2', nombre: 'Sublime', cantidad: 1, precio: 2, costo: 1.5 }] }),
+    venta({ items: [{ productoId: 'p1', nombre: 'Inca Kola', cantidad: 1, precio: 3, costo: 2.3 }, { productoId: '', nombre: 'Venta rápida', cantidad: 1, precio: 10, costo: 0 }] }),
+  ])
+  assert.deepEqual(d.productos.map((l) => l.nombre), ['Venta rápida', 'Inca Kola', 'Sublime'])
+  assert.equal(d.productos[1].cantidad, 3)
+  assert.equal(d.productos[1].total, 9)
+  assert.equal(d.productos[1].ganancia, 2.1)
+  assert.equal(d.unidades, 5)
+  assert.equal(d.total, 21)
+  assert.equal(d.ganancia, 12.6)
+  assert.match(textoDetalleVendido('Bodega Carmen', 'hoy', d), /• 3 Inca Kola — S\/ 9.00/)
+  assert.match(textoDetalleVendido('', 'hoy', d), /Total: S\/ 21.00 · 3 productos/)
 })
